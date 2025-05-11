@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:14.9
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres # pragma: allowlist secret
+      POSTGRES_DB: layered_arch
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d layered_arch -U postgres" ]
+      interval: 1s
+      timeout: 2s
+      retries: 5
+      start_period: 3s
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

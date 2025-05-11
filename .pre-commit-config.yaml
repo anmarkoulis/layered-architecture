@@ -1,0 +1,94 @@
+default_stages:
+  - pre-commit
+fail_fast: false
+repos:
+
+  - hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: (config/settings/test.py|/static|.html|local|README.md|uv.lock|infra/environments/.*_cf_parameters.json*|tests/e2e/data/.*json|tests/e2e/tokens/.*json|tests/conftest.py)
+    repo: https://github.com/Yelp/detect-secrets.git
+    rev: v1.5.0
+
+  - hooks:
+      - id: check-merge-conflict
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: debug-statements
+      - id: check-added-large-files
+      - id: check-docstring-first
+      - id: check-case-conflict
+      - id: check-builtin-literals
+      - id: mixed-line-ending
+      - id: check-json
+        files: \.(json)$
+      - id: check-toml
+        files: \.(toml)$
+      - id: check-yaml
+        files: \.(yml|yaml)$
+        # --unsafe arg ignores custom Tavern tags, checks only syntax instead of attempting to load the YAML
+        args: [--allow-multiple-documents, --unsafe]
+      - id: fix-encoding-pragma
+        args: [--remove]
+    repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+
+  - hooks:
+      - id: isort
+        entry: isort
+        additional_dependencies: ["toml"]
+    repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.10.1
+
+  - hooks:
+      - id: black
+        require_serial: true
+        types:
+          - python
+    repo: https://github.com/ambv/black
+    rev: 25.1.0
+
+  - hooks:
+      - id: flakeheaven
+        exclude: (README.md|architecture.md)
+        additional_dependencies: ["flake8-tidy-imports==4.9.0"]
+    repo: https://github.com/flakeheaven/flakeheaven
+    rev: 3.3.0
+
+  - hooks:
+      - entry: uv run pylint
+        files: \.py$
+        exclude: ^\venv/.*$
+        id: PyLint
+        language: system
+        name: PyLint
+        args: ["--disable=W0718"]
+    repo: local
+
+  - hooks:
+      - id: ruff
+    repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.9
+
+  - hooks:
+      - id: commitizen
+        stages:
+          - commit-msg
+    repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.7.0
+
+  - hooks:
+      - id: bandit
+        args: [-c, pyproject.toml, --verbose, -ll, --recursive, .]
+        additional_dependencies: ["bandit[toml]"]
+    repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+
+  - hooks:
+      - entry: uv run mypy
+        args: [".", "--exclude", "venv"]
+        id: mypy
+        language: system
+        name: mypy
+        pass_filenames: false
+    repo: local

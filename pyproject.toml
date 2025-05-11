@@ -1,0 +1,323 @@
+[project]
+name = "layered-architecture"
+version = "0.1.0"
+description = "A FastAPI application demonstrating layered architecture with pizza and beer ordering system"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic==1.15.2",
+    "asyncpg==0.30.0",
+    "celery>=5.3.0",
+    "environs==14.1.1",
+    "fastapi==0.115.12",
+    "httpx>=0.26.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings==2.9.1",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "python-dotenv>=1.0.0",
+    "redis>=5.0.0",
+    "sqlalchemy>=2.0.0",
+    "typer>=0.9.0",
+    "uvicorn==0.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "commitizen==4.7.0",
+    "faker==37.1.0",
+    "greenlet==3.2.2",
+    "httpx==0.28.1",
+    "mypy==1.15.0",
+    "pre-commit==4.2.0",
+    "pylint==3.3.7",
+    "pylint-celery==0.3",
+    "pytest==8.3.5",
+    "pytest-asyncio==0.26.0",
+    "pytest-cov==6.1.1",
+    "types-mock==5.2.0.20250306",
+    "types-pyyaml==6.0.12.20250402",
+    "types-requests==2.32.0.20250328",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "tests.py", "conftest.py"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/layered_architecture"]
+
+[tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/layered_architecture"
+namespace_packages = true
+explicit_package_bases = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_calls = false
+disallow_untyped_defs = true
+disallow_any_explicit = false
+disallow_subclassing_any = false
+ignore_missing_imports = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+
+[tool.isort]
+line_length = 79
+known_local_folder = ["layered_architecture"]
+src_paths = ["src"]
+multi_line_output = 3
+include_trailing_comma = 'True'
+known_first_party = 'layered_architecture'
+force_grid_wrap = 0
+combine_as_imports = 'True'
+
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = ["pyproject.toml:version"]
+update_changelog_on_bump = true
+
+[tool.flakeheaven.plugins]
+pyflakes = ["+*"]
+pycodestyle = ["+*", "-E203", "-E266", "-E501", "-W503"]
+flake8-tidy-imports = ["+*"]
+
+[tool.flakeheaven]
+ban-relative-imports = "parents"
+exclude = ["docs/*"]
+
+[tool.flakeheaven.exceptions."**/__init__.py"]
+pyflakes = ["-F401"] # Unused imports in __init__.py
+
+[tool.pycodestyle]
+max-line-length = 79
+
+[tool.coverage.run]
+omit = ["*tests*", "*developer_tools*", "*alembic*"]
+concurrency = ["greenlet", "thread"]
+include = ["/app/src/*"]
+
+[tool.coverage.report]
+precision = 2
+
+[tool.pylint.master]
+persistent = "no"
+load-plugins = ["pylint_celery"]
+jobs = 1
+unsafe-load-any-extension = "no"
+extension-pkg-whitelist = []
+
+[tool.pylint.messages_control]
+confidence = []
+disable = ["all", "W0718"]
+enable = [
+    "import-error",
+    "reimported",
+    "deprecated-module",
+    "unpacking-non-sequence",
+    "used-before-assignment",
+    "global-variable-undefined",
+    "undefined-loop-variable",
+    "global-at-module-level",
+    "bad-open-mode",
+    "redundant-unittest-assert",
+    "boolean-datetime",
+    "deprecated-method",
+    "anomalous-unicode-escape-in-string",
+    "abstract-class-instantiated",
+    "star-needs-assignment-target",
+    "duplicate-argument-name",
+    "nonlocal-and-global",
+    "return-arg-in-generator",
+    "invalid-star-assignment-target",
+    "bad-reversed-sequence",
+    "init-is-generator",
+    "confusing-with-statement",
+    "unnecessary-lambda",
+    "pointless-string-statement",
+    "unreachable",
+    "using-constant-test",
+    "bad-super-call",
+    "not-an-iterable",
+    "not-a-mapping",
+    "bad-format-character",
+    "bad-format-string-key",
+    "bad-format-string",
+    "missing-format-attribute",
+    "invalid-format-index",
+    "logging-format-truncated",
+    "logging-unsupported-format",
+    "logging-format-interpolation",
+    "invalid-unary-operand-type",
+    "unsupported-binary-operation",
+    "not-callable",
+    "redundant-keyword-arg",
+    "assignment-from-no-return",
+    "assignment-from-none",
+    "not-context-manager",
+    "repeated-keyword",
+    "missing-kwoa",
+    "no-value-for-parameter",
+    "invalid-sequence-index",
+    "invalid-slice-index",
+    "unexpected-keyword-arg",
+    "unsupported-membership-test",
+    "unsubscriptable-object",
+    "access-member-before-definition",
+    "method-hidden",
+    "assigning-non-slot",
+    "no-method-argument",
+    "no-self-argument",
+    "unexpected-special-method-signature",
+    "non-iterator-returned",
+    "arguments-differ",
+    "bad-staticmethod-argument",
+    "non-parent-init-called",
+    "bad-except-order",
+    "catching-non-exception",
+    "bad-exception-context",
+    "raising-bad-type",
+    "raising-non-exception",
+    "misplaced-bare-raise",
+    "broad-except",
+    "not-async-context-manager",
+]
+
+[tool.pylint.reports]
+output-format = "colorized"
+reports = "no"
+msg-template = '[{msg_id} {symbol}] {msg} File: {path}, line {line}, in {obj}'
+
+[tool.pylint.logging]
+logging-modules = "logging"
+
+[tool.pylint.format]
+max-line-length = 79
+ignore-long-lines = '^\s*(# )?<?https?://\S+>?$'
+single-line-if-stmt = "no"
+max-module-lines = 1000
+indent-string = '    '
+indent-after-paren = 4
+expected-line-ending-format = "LF"
+
+[tool.pylint.typecheck]
+ignore-mixin-members = "yes"
+ignored-classes = "DictField"
+
+[tool.pylint.variables]
+init-import = "no"
+dummy-variables-rgx = "_$|dummy"
+callbacks = ["cb_", "_cb"]
+
+[tool.pylint.similarities]
+min-similarity-lines = 4
+ignore-comments = "yes"
+ignore-docstrings = "yes"
+ignore-imports = "no"
+
+[tool.pylint.spelling]
+spelling-store-unknown-words = "no"
+
+[tool.pylint.miscellaneous]
+notes = ["FIXME", "XXX", "TODO"]
+
+[tool.pylint.basic]
+good-names = ["i", "j", "k", "ex", "Run", "_"]
+bad-names = ["foo", "bar", "baz", "toto", "tutu", "tata"]
+include-naming-hint = "no"
+function-rgx = "[a-z_][a-z0-9_]{2,30}$"
+variable-rgx = "[a-z_][a-z0-9_]{2,30}$"
+const-rgx = "(([A-Z_][A-Z0-9_]*)|(__.*__))$"
+attr-rgx = "[a-z_][a-z0-9_]{2,30}$"
+argument-rgx = "[a-z_][a-z0-9_]{2,30}$"
+class-attribute-rgx = "([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$"
+inlinevar-rgx = "[A-Za-z_][A-Za-z0-9_]*$"
+class-rgx = "[A-Z_][a-zA-Z0-9]+$"
+module-rgx = "(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$"
+method-rgx = "[a-z_][a-z0-9_]{2,30}$"
+no-docstring-rgx = "^_"
+docstring-min-length = -1
+
+[tool.pylint.elif]
+max-nested-blocks = 5
+
+[tool.pylint.imports]
+deprecated-modules = ["regsub", "TERMIOS", "Bastion", "rexec"]
+
+[tool.pylint.design]
+max-args = 5
+ignored-argument-names = "_.*"
+max-locals = 15
+max-returns = 6
+max-branches = 12
+max-statements = 50
+max-parents = 7
+max-attributes = 7
+min-public-methods = 2
+max-public-methods = 20
+max-bool-expr = 5
+
+[tool.pylint.classes]
+defining-attr-methods = ["__init__", "__new__", "setUp"]
+valid-classmethod-first-arg = "cls"
+valid-metaclass-classmethod-first-arg = "mcs"
+exclude-protected = ["_asdict", "_fields", "_replace", "_source", "_make"]
+
+[tool.pylint.exceptions]
+overgeneral-exceptions = "builtins.Exception"
+
+[tool.ruff]
+select = [
+    "A001", "PLW0406", "F404", "PLE0604", "F822", "B023", "PLW0602",
+    "PLW0603", "W605", "F701", "F702", "PLE0116", "PLE0101", "F622",
+    "F706", "B002", "F704", "PLE0117", "B012", "F631", "B006", "F601",
+    "PLW0120", "B018", "PGH001", "S102", "F502", "F501", "F524", "F506",
+    "PLE1310", "F522", "F525", "E703", "PLE1206", "PLE1205", "F901",
+    "B014", "PLW0711", "E722", "PLE1700"
+]
+ignore = []
+fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W",
+           "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT",
+           "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH",
+           "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP",
+           "YTT"]
+unfixable = []
+exclude = [
+    ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache",
+    ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv",
+    "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv"
+]
+line-length = 79
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+target-version = "py310"
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.bandit]
+exclude_dirs = [".venv", "venv"]
