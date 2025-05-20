@@ -58,6 +58,8 @@ style: |
 # Layered Architecture & Dependency Injection
 ## A Recipe for Clean and Testable FastAPI Code
 
+![Meetup Logo](https://secure.meetupstatic.com/photos/event/6/b/9/2/clean_443067538.webp)
+
 Antonis Markoulis
 Senior Staff Engineer @Orfium
 
@@ -67,19 +69,17 @@ Senior Staff Engineer @Orfium
 
 # Agenda
 
-- Our Journey: From Django to FastAPI
-- The Freedom of FastAPI
-- High-Level Architecture Overview
-- Layer 1: Presentation Layer
-- Layer 2: Service Layer
-- Layer 3: Persistence Layer
-- DTOs: The Glue Between Layers
-- Dependency Inversion Principle
-- Dependency Injection
-- Testing Strategy
-- Trade-offs and Challenges
-- What We Learned
-- Q&A + Resources
+1. From Django to FastAPI
+
+2. Layered Architecture
+
+3. Dependency Inversion & Injection
+
+4. Testing Strategy
+
+5. Live Demo
+
+6. Aftermath
 
 ---
 
@@ -89,16 +89,13 @@ Senior Staff Engineer @Orfium
 - Legacy Django projects with suboptimal structure
 - Fat models at best, spaghetti code at worst
 - Performance issues from sync code and ORM queries
-- Difficult to maintain, scale, and test
 - Hard to implement new features
-- Complex deployment process
 - Limited async capabilities
 
 ## Our Approach
 - Kept existing Django services
 - Only rewrote one critical project to FastAPI
 - All new services built with FastAPI
-- Gradual transition strategy
 
 ---
 
@@ -121,29 +118,9 @@ Senior Staff Engineer @Orfium
 
 # High-Level Architecture Overview
 
-```
-┌─────────────────┐
-│  Presentation   │
-│  (FastAPI/CLI)  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    Business     │
-│    (Services)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Persistence   │
-│     (DAOs)      │
-└─────────────────┘
-```
-
-- DTOs flow between layers
-- Interfaces define contracts
-- Implementations are injected
-- Celery/CLI reuse same services
+<div style="display: flex; justify-content: center; align-items: center; height: 70vh;">
+<img src="diagrams/generated/high_level_architecture.png" style="max-width: 80%;" />
+</div>
 
 ---
 
@@ -222,6 +199,11 @@ class SQLAlchemyFooDAO(FooDAO):
 - Validation-free
 - Serialization-safe
 - Flow between layers
+
+Example Flow:
+```
+POST Request → Validated DTO → Service → DAO → DB → Response DTO
+```
 
 ```python
 from pydantic import BaseModel
@@ -331,7 +313,7 @@ class TestFooAPI:
         foo_id = response.json()["id"]
 
         # when
-        response = async_client.get(f"v1/foo/{foo_id}")
+        response = await async_client.get(f"v1/foo/{foo_id}")
 
         # then
         assert response.status_code == 200
@@ -383,7 +365,7 @@ class TestFooService:
       foo_client.get.return_value = FooDTO(bar="bar", id="foo_id")
 
       # when
-      response = foo_service.get_one(foo_id=foo_id)
+      response = await foo_service.get_one(foo_id=foo_id)
 
       # then
       assert response == FooDTO(bar="bar", id="foo_id")

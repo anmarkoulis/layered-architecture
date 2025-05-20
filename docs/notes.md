@@ -3,231 +3,91 @@
 ## Title
 "Layered Architecture & Dependency Injection: A Recipe for Clean and Testable FastAPI Code"
 
-## Architectural Evolution
+## Description
+Building a FastAPI application that scales? It's not just about async endpoints and Pydantic models. In this talk, we'll dive deep into how we structure our FastAPI applications for long-term maintainability. You'll learn how we use layered architecture to keep our code organized, how dependency injection helps us write testable code, and why we moved away from the traditional Django approach. We'll share real examples of how this architecture helped us handle complex business logic, scale our services, and maintain high test coverage. Plus, we'll discuss the trade-offs and when this approach might be overkill.
 
-### The Legacy & Issues
-- Legacy Django projects with suboptimal structure
-- Fat models at best, spaghetti code at worst
-- Performance issues from sync code and ORM queries
-- Difficult to maintain, scale, and test
+## Presentation Flow (Total: 30 minutes)
 
-### Why FastAPI Won
-- **Performance**: Async-first, built for speed
-- **Modern**: Latest Python features
-- **Agility**: Freedom to structure our way
+1. From Django to FastAPI (5 minutes)
 
-### Our Architecture Evolution
-- Started with domain-driven design
-- Experimented with Clean Architecture
-- Found our sweet spot in Layered Architecture
+[Presenter Notes]
+"Let me start by sharing our journey from Django to FastAPI. Many of us have worked with Django - it's a fantastic framework that has served the Python community well for years. However, as our needs evolved, we found ourselves facing some challenges.
 
-### Why Layered Architecture?
-- Simple enough for new team members
-- Flexible enough for complex domains
-- Consistent across all projects
-- Perfect balance of structure and freedom
-- Easy to understand and maintain
-- Scales well with team size
-- Works for both simple and complex projects
+Our legacy Django projects had what we call 'fat models' - where all the business logic lived in the models. At worst, we had spaghetti code that was hard to maintain and test. The synchronous nature of Django and its ORM queries were causing performance bottlenecks, especially as our user base grew.
 
-## Description options
+We made a strategic decision: instead of rewriting everything at once, we kept our existing Django services and only rewrote one critical project to FastAPI. All new services would be built with FastAPI.
 
+Why FastAPI? Three key reasons: First, it's async-first, built for speed. Second, it embraces modern Python features. And third, it gives us the freedom to structure our code our way, without enforcing a specific architecture.
 
-1. Ever wondered how to build scalable, testable, and maintainable services with FastAPI?
-In this talk, we'll walk through the full lifecycle of a request in our production-ready FastAPI setup—from the entry point all the way to the database and back. We'll show how we use layered architecture with strict boundaries between presentation, business, and persistence layers, leveraging dependency injection to keep everything decoupled and testable.
-We'll also share why we moved away from Django's fat models and ORM magic, how this new design improved our flexibility and testability, and what trade-offs (like boilerplate!) we had to accept.
-Whether you're scaling a side project or architecting microservices, this talk will help you structure your Python codebase like a pro.
+Our architecture evolution started with domain-driven design, then we experimented with Clean Architecture, and finally found our sweet spot in Layered Architecture. This approach gives us the perfect balance of structure and flexibility."
 
-2. Tired of untestable code and tight coupling in your FastAPI applications? We've been there too. In this practical talk, we'll share our journey of transforming a monolithic Django application into a maintainable FastAPI service. You'll see how layered architecture and dependency injection helped us break free from the limitations of fat models and magic ORM queries. We'll discuss real challenges we faced, the trade-offs we made, and how this architecture made our code more testable and flexible. Whether you're dealing with legacy code or starting fresh, you'll leave with actionable patterns you can apply immediately.
+2. Layered Architecture (7 minutes)
 
-3. Building a FastAPI application that scales? It's not just about async endpoints and Pydantic models. In this talk, we'll dive deep into how we structure our FastAPI applications for long-term maintainability. You'll learn how we use layered architecture to keep our code organized, how dependency injection helps us write testable code, and why we moved away from the traditional Django approach. We'll share real examples of how this architecture helped us handle complex business logic, scale our services, and maintain high test coverage. Plus, we'll discuss the trade-offs and when this approach might be overkill.
+[Presenter Notes]
+"Let me show you our layered architecture. [Show diagram] It consists of three main layers: Presentation, Business, and Persistence.
 
-4. FastAPI is great, but how do you structure a real-world application that grows with your business? In this talk, we'll share our experience building production-grade FastAPI services using layered architecture. You'll see how we handle complex business logic, maintain testability, and scale our applications. We'll discuss why we moved away from Django's approach, how we manage dependencies, and what trade-offs we made along the way. Whether you're building a new service or refactoring an existing one, you'll learn practical patterns you can apply to your own projects.
+The Presentation Layer is where FastAPI lives. It's responsible for handling HTTP requests, validating input, and formatting responses. The same pattern works for CLI commands and Celery tasks.
 
-5. Want to build FastAPI applications that don't turn into spaghetti code? In this talk, we'll show you how we use layered architecture to keep our code organized and maintainable. You'll learn how we structure our applications, handle dependencies, and write testable code. We'll share real examples of how this approach helped us scale our services and maintain high test coverage. Plus, we'll discuss the trade-offs and when this architecture might be overkill. Whether you're new to FastAPI or a seasoned developer, you'll leave with practical patterns you can apply to your own projects.
+Here's a simple example of how it looks in code: [Show code example]
+```python
+@router.post("/foos")
+async def create_foo(
+    foo: FooCreateDTO,
+    foo_service: FooService = Depends(get_foo_service)
+) -> FooResponseDTO:
+    return await foo_service.create_foo(foo)
+```
 
-## Presentation Slides
+The Business Layer contains our services. This is where the magic happens - all our business logic lives here. Services are defined by interfaces, making them easy to test and swap implementations.
 
+The Persistence Layer handles all database operations through DAOs - Data Access Objects. Each DAO has an interface, and we can easily swap implementations for different databases or testing.
 
-Suggested Slide Flow (for 20–30 mins):
-	1.	[Title Slide]
-	•	Include title, your name, company (optional), and agenda.
-	2.	[Our Journey: From Django to FastAPI]
-	•	Brief story: fat models, testing pain, ORM queries, performance.
-	•	Show a rough timeline and why FastAPI won.
-	3.	[High-Level Architecture Overview]
-	•	One diagram with layers: Presentation → Business → Persistence.
-	•	Label the DTOs, interfaces, and implementations.
-	•	Mention Celery/CLI reuse.
-	4.	[Layer 1: Presentation Layer]
-	•	Show a FastAPI endpoint with Depends, service injection, DTO input.
-	•	Mention how this also applies to CLI/Celery.
-	•	Emphasize minimal logic here.
-	5.	[What is Dependency Injection?]
-	•	Explain inversion of control briefly.
-	•	Show what the DependencyService does (simple code).
-	•	How it injects services/DAOs based on config/env.
-	6.	[Layer 2: Service Layer (Business)]
-	•	Interface vs implementation: why and how.
-	•	How transaction management and logic live here.
-	•	Emphasize testability with fake daos.
-	7.	[Layer 3: Persistence Layer (DAOs)]
-	•	Interface for each DAO + real implementation.
-	•	Explain why you avoid direct DB calls in services.
-	8.	[DTOs: The Glue Between Layers]
-	•	Lightweight, validation-free, serialization-safe.
-	9.	[Testing Strategy]
-	•	Diagram or example: service tested with fake/null daos.
-	•	Benefits: fast, isolated, independent of DB.
-	10.	[Trade-offs and Challenges]
+This separation of concerns brings several benefits:
+- Improves code organization and maintainability
+- Simplifies testing through clear boundaries
+- Enables independent scaling of each layer
+- Makes it easier to swap implementations
 
-	•	Boilerplate.
-	•	Onboarding cost.
-	•	Sometimes overkill for tiny apps.
+DTOs - Data Transfer Objects - flow between these layers. They're lightweight, validation-free, and safe for serialization. They ensure our business logic isn't coupled to our database schema or API contracts.
 
-	11.	[What We Learned + When to Use This]
+The beauty of this architecture is its simplicity. New team members can understand it quickly, yet it's flexible enough to handle complex domains. It's consistent across all our projects, making it easy to maintain and scale."
 
-	•	Works well for single-domain apps <50k LOC.
-	•	Great for teams who want long-term maintainability.
-	•	When not to over-engineer.
+3. Dependency Inversion & Injection (5 minutes)
 
-	12.	[Q&A + Resources]
+[Presenter Notes]
+"Now, let's talk about dependency inversion and injection. This is a crucial principle that makes our architecture work.
 
-	•	Offer a GitHub repo/sample if available.
-	•	Invite feedback/discussion.
+The Dependency Inversion Principle states that high-level modules should not depend on low-level modules. Both should depend on abstractions. In practice, this means our services don't know about specific database implementations or external services.
 
-## Developer Perspectives
+We implement this through our DependencyService. Here's how it works: [Show code example]
+```python
+class DependencyService:
+    @staticmethod
+    def get_foo_service(
+        db: AsyncSession = Depends(get_db),
+    ) -> FooServiceInterface:
+        uow = SQLAUnitOfWork(db)
+        return FooService(
+            foo_dao=FooDAO(uow.db),
+            foo_client=FooClient(),
+            uow=uow,
+        )
+```
 
-### Junior Developer
-"I appreciate the clear structure and separation of concerns. It makes it easier to understand where to put new code. The DTO pattern helps me validate data correctly."
+This approach gives us several benefits:
+- We can easily swap implementations for testing
+- Our code is more maintainable and testable
+- We avoid circular dependencies
+- It's simple to understand and use
 
-### Mid-Level Developer
-"The dependency injection pattern is powerful. I can easily swap implementations for testing. The layered architecture makes the codebase more maintainable."
+The key is that our services depend on interfaces, not concrete implementations. This makes our code more flexible and easier to test."
 
-### Senior Developer
-"I see the value in avoiding if-statements through specialized implementations. The consistency across different entrypoints (API, CLI, Celery) is impressive."
+4. Testing Strategy (5 minutes)
 
-### Staff Engineer
-"The architecture scales well. We can easily add new features without modifying existing code. The testing strategy is comprehensive and maintainable."
+[Presenter Notes]
+"Our testing strategy follows the testing pyramid approach. Let me show you how we test each layer.
 
-#### General
-
-1. "DependencyService" Sounds Vague
-	•	Question: What is the DependencyService really doing? Is it a homegrown service container? How is it configured?
-	•	Suggestion: Add a visual and small code snippet showing how DependencyService works, what its interface looks like, and how it decides which implementation to provide.
-
-2. Interfaces Everywhere: Why So Many?
-	•	Question: Why do you need an interface for each service and DAO if you only have one implementation? Isn't that overengineering?
-	•	Suggestion: Clarify that interfaces aren't for current complexity, but to enable future flexibility and testability. Mention mock/fake/alternate implementations during testing or per environment.
-
-3. Unit of Work: Explain It
-	•	Question: What is a "unit of work"? Is it a library? Is it your own pattern? How does it manage transactions?
-	•	Suggestion: Include a slide or code snippet showing how your UnitOfWork class is used in a service, how it commits/rolls back, and why it's essential.
-
-4. "DTOs" vs "Pydantic Schemas"
-	•	Question: Why not just use Pydantic models all the way through? What's the difference between your DTOs and the FastAPI models?
-	•	Suggestion: Clarify your DTOs are plain dataclasses (or Pydantic BaseModels with custom config?) and you intentionally decouple them from request/response schemas.
-
-5. Boilerplate: Can It Be Minimized?
-	•	Question: Is there a code generation approach or shared pattern to reduce the boilerplate?
-	•	Suggestion: Acknowledge boilerplate is a trade-off and share any ideas you're exploring to reduce it (e.g., abstract base classes, codegen, or common service mixins).
-
-
-## Q&A Section
-
-### Dependency Injection
-Q: Why not use FastAPI's built-in dependency injection?
-A: While FastAPI's DI is great, our custom DependencyService provides more control over implementation selection and lifecycle management.
-
-Q: How do you handle circular dependencies?
-A: We use interface segregation and careful service design to avoid circular dependencies. Sometimes we introduce a mediator service.
-
-### Async Services
-Q: Why async services instead of sync?
-A: Async services allow better resource utilization and scalability, especially when dealing with I/O operations.
-
-Q: How do you handle async context managers?
-A: We use async context managers in our services and ensure proper cleanup in the unit of work pattern.
-
-### Testing Strategy
-Q: How do you test async services?
-A: We use pytest-asyncio and create async test fixtures. Our fake services implement the same interfaces.
-
-Q: What's your approach to integration testing?
-A: We use a test database and transaction rollbacks to ensure test isolation.
-
-### Tradeoffs
-Q: Isn't this architecture overkill for small projects?
-A: The initial setup might seem like overkill, but it pays off as the project grows. We have templates to reduce boilerplate.
-
-Q: How do you handle the learning curve for new team members?
-A: We provide extensive documentation and pair programming sessions. The consistent patterns make it easier to learn.
-
-### Comparison to Other Architectures
-Q: How does this compare to Clean Architecture?
-A: Our approach is inspired by Clean Architecture but simplified for practical use. We focus on the core principles that provide the most value.
-
-Q: Why not use a framework like Django?
-A: FastAPI's async support and modern Python features make it a better fit for our use cases.
-
-### DTOs
-Q: Why DTOs instead of Pydantic models?
-A: We use Pydantic for our DTOs but call them DTOs to emphasize their role in data transfer.
-
-Q: How do you handle DTO validation?
-A: Validation happens at the boundaries (API endpoints, CLI commands) using Pydantic's validation features.
-
-### Celery and CLI Integration
-Q: How do you share code between FastAPI and Celery?
-A: We use the same service interfaces and DTOs across all entrypoints.
-
-Q: How do you handle CLI-specific concerns?
-A: We use Typer for CLI and inject appropriate service implementations through our DependencyService.
-
-### Codebase Growth
-Q: How do you maintain consistency as the codebase grows?
-A: We use strict linting rules, automated testing, and code reviews to maintain consistency.
-
-Q: How do you handle feature flags and A/B testing?
-A: We implement different service implementations and select them through our DependencyService based on feature flags.
-
-## Tools for Creating Presentations
-
-For converting this markdown to a presentation, you can use:
-
-1. **Marp**: A markdown presentation ecosystem
-   - Install: `npm install -g @marp-team/marp-cli`
-   - Convert: `marp presentation.md --pdf`
-
-2. **Slidev**: A slide maker and presenter
-   - Install: `npm init slidev`
-   - Convert: `slidev build`
-
-3. **Reveal.js**: A framework for creating presentations
-   - Install: `npm install reveal-md`
-   - Convert: `reveal-md presentation.md --static _site`
-
-4. **Pandoc**: A universal document converter
-   - Install: `brew install pandoc`
-   - Convert: `pandoc presentation.md -o presentation.pdf`
-
-I recommend using Marp as it's specifically designed for markdown presentations and produces clean, professional-looking slides.
-
-# Testing Strategy
-
-## System Tests
-- Test complete request flow
-- Use FastAPI's AsyncClient
-- Test API contracts
-- Follow given/when/then pattern
-
-### Guidelines
-- No mocking whatsoever in e2e tests
-- Use mock servers for external services
-- Use test endpoints to create resources (not in production)
-- Avoid factories (they could break with DAO refactoring)
-
-Example:
+System tests are at the top. These test the complete flow from API to database. We use FastAPI's AsyncClient and follow the given/when/then pattern. Here's an example: [Show code example]
 ```python
 class TestFooAPI:
     @pytest.mark.anyio
@@ -241,7 +101,7 @@ class TestFooAPI:
         foo_id = response.json()["id"]
 
         # when
-        response = async_client.get(f"v1/foo/{foo_id}")
+        response = await async_client.get(f"v1/foo/{foo_id}")
 
         # then
         assert response.status_code == 200
@@ -251,110 +111,78 @@ class TestFooAPI:
         }
 ```
 
-## Integration Tests
-- Test DAOs against real database
-- Validate SQL queries and constraints
-- Test transaction boundaries
-- Use test database with rollbacks
-- Focus on data persistence
-- Verify database state
+Integration tests verify our DAOs work correctly with the real database. We use a test database with rollbacks to ensure test isolation. These tests validate our infrastructure wiring and database interactions.
 
-Example:
-```python
-@pytest.mark.anyio
-async def test_foo_dao_create(db: AsyncSession) -> None:
-    # Arrange
-    dao = SQLAlchemyFooDAO(db)
-    foo_dto = FooDTO(name="test", items=[])
+Unit tests focus on business logic. We mock all dependencies and test services in isolation. This gives us fast feedback and good coverage. The key is that we're testing the business logic in isolation, not the infrastructure.
 
-    # Act
-    result = await dao.create(foo_dto)
+The key to our testing strategy is that we never mock in system tests. This ensures we're testing the real behavior of our application."
 
-    # Assert
-    assert result.id is not None
-    assert result.name == foo_dto.name
+5. Live Demo (5 minutes)
 
-    # Verify in database
-    db_foo = await db.get(Foo, result.id)
-    assert db_foo is not None
-    assert db_foo.name == foo_dto.name
-```
+[Presenter Notes]
+"Let's see this in action with our pizza & beer ordering system. This is a real-world example that shows all layers working together.
 
-## Unit Tests
-- Mock all dependencies
-- Focus on business logic
-- Fast execution
-- Test edge cases
-- Verify business rules
-- Use AsyncMock for async dependencies
-- Test service behavior in isolation
+[Start demo]
+Here we have a complete flow:
+- API endpoint for creating orders
+- Service layer handling business logic
+- Multiple external service integrations
+- Transaction management
+- Error handling
+- Full test coverage
 
-Example:
-```python
-@pytest.mark.anyio
-class TestFooService:
-    async def test_foo_happy(self) -> None:
-        # given
-        foo_dao = AsyncMock(spec=FooDAOInterface)
-        foo_client = AsyncMock(spec=FooClientInterface)
-        foo_service = FooService(
-            foo_dao=foo_dao,
-            foo_client=foo_client
-        )
-        foo_id = "foo_id"
-        foo_dao.get_one.return_value = FooDTO(bar="bar", id="foo_id")
-        foo_client.get.return_value = FooDTO(bar="bar", id="foo_id")
+[Run through the demo, showing:
+1. Creating an order
+2. How the layers interact
+3. Running the tests
+4. Error handling]
 
-        # when
-        response = foo_service.get_one(foo_id=foo_id)
+This demonstrates how all the concepts we've discussed come together in a real application. Notice how clean and maintainable the code is, and how easy it is to test.
 
-        # then
-        assert response == FooDTO(bar="bar", id="foo_id")
-        foo_dao.get_one.assert_called_once_with(foo_id)
-        foo_client.get.assert_called_once_with(foo_id)
-```
+You can find the complete source code in our GitHub repository. [Show QR code]"
 
-## Benefits
-- Clear separation of concerns
-- Fast feedback loop
-- Easy to maintain
-- Good coverage
-- Realistic testing
+6. Tips for Getting Started (3 minutes)
 
-## Trade-offs
-- More test files
-- Need to maintain test database
-- System tests can be slow
-- Need to handle async testing
+[Presenter Notes]
+"Before we wrap up, let me share some practical tips for adopting this architecture:
 
-# DTOs: The Glue Between Layers
+1. Define DTOs first – they drive the whole flow
+2. Start with 1 service to test layering
+3. Use interfaces from day 1 (even simple ones)
+4. Keep dependency injection centralized
+5. Add tests early (unit > integration > system)
 
-## Why Pydantic Models?
-- Built-in validation
-- JSON serialization
-- Type safety
-- Easy to extend
+These tips will help you get started on the right foot and avoid common pitfalls."
 
-## Example DTOs
-```python
-from pydantic import BaseModel, Field
-from decimal import Decimal
-from typing import List
+7. Closing (2 minutes)
 
-class FooItemDTO(BaseModel):
-    name: str = Field(..., description="The name of the item")
-    quantity: int = Field(..., ge=1, description="The quantity of the item")
+[Presenter Notes]
+"Thank you all for your attention! I hope you found this talk valuable. You can find all the code and examples in our GitHub repository. Feel free to connect with me on LinkedIn or Twitter to continue the conversation about clean code, pizza, and async Python! 🍕"
 
-class FooDTO(BaseModel):
-    id: str = Field(..., description="The unique identifier")
-    name: str = Field(..., description="The name of the foo")
-    items: List[FooItemDTO] = Field(..., description="The items in the foo")
-    total: Decimal = Field(..., description="The total amount")
-```
+## Anticipated Questions
 
-## Benefits
-- Automatic validation
-- Clear documentation
-- Type hints
-- Easy serialization
-- Schema generation
+[Presenter Notes]
+"Let me prepare you for some common questions you might get:
+
+1. Why not use FastAPI's built-in dependency injection?
+   - While FastAPI's DI is great, our custom DependencyService provides more control over implementation selection and lifecycle management.
+
+2. How do you handle circular dependencies?
+   - We use interface segregation and careful service design to avoid circular dependencies. Sometimes we introduce a mediator service.
+
+3. How do you test async services?
+   - We use pytest-asyncio and create async test fixtures. Our fake services implement the same interfaces.
+
+4. Isn't this architecture overkill for small projects?
+   - The initial setup might seem like overkill, but it pays off as the project grows. We have templates to reduce boilerplate.
+
+5. How do you handle the learning curve for new team members?
+   - We provide extensive documentation and pair programming sessions. The consistent patterns make it easier to learn."
+
+## Resources
+- GitHub repository: github.com/anmarkoulis/layered-architecture
+- Documentation: [link]
+- Example code: [link]
+- Contact: antonis@orfium.com
+- LinkedIn: linkedin.com/in/anmarkoulis
+- Twitter: twitter.com/anmarkoulis

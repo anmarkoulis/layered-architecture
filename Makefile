@@ -6,8 +6,11 @@ help: ## Display this help.
 install-marp: ## Install marp-cli
 	npm install -g @marp-team/marp-cli
 
-create-presentation: install-marp ## Generate presentation PDF
-	marp docs/presentation.md --pdf
+install-mermaid-cli: ## Install mermaid-cli
+	npm install -g @mermaid-js/mermaid-cli
+
+create-presentation: install-marp generate-diagrams ## Generate presentation PDF
+	marp docs/presentation.md --pdf --allow-local-files
 
 .PHONY: $(shell grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | cut -d ':' -f 1)
 
@@ -34,3 +37,12 @@ sync: ## Sync the project
 
 dbshell: ## Open PSQL shell
 	docker compose exec postgres psql -U postgres -d layered_arch
+
+
+generate-diagrams: install-mermaid-cli ## Generate diagrams
+	@echo "Generating diagrams..."
+	@for file in docs/diagrams/source/*.mmd; do \
+		filename=$$(basename $$file .mmd); \
+		mmdc -i $$file -o docs/diagrams/generated/$$filename.png; \
+	done
+	@echo "Diagrams generated successfully!"
