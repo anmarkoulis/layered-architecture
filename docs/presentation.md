@@ -56,7 +56,7 @@ style: |
 ---
 
 # Layered Architecture & Dependency Injection
-## The Perfect Recipe for Your FastAPI Project
+## A Recipe for Clean and Testable FastAPI Code
 
 Antonis Markoulis
 Senior Staff Engineer @Orfium
@@ -71,10 +71,11 @@ Senior Staff Engineer @Orfium
 - The Freedom of FastAPI
 - High-Level Architecture Overview
 - Layer 1: Presentation Layer
-- What is Dependency Injection?
 - Layer 2: Service Layer
 - Layer 3: Persistence Layer
 - DTOs: The Glue Between Layers
+- Dependency Inversion Principle
+- Dependency Injection
 - Testing Strategy
 - Trade-offs and Challenges
 - What We Learned
@@ -82,38 +83,39 @@ Senior Staff Engineer @Orfium
 
 ---
 
-# Our Journey: From Django to FastAPI
+# Our Journey: From Django ...
 
-- Started with Django's fat models
-- Testing was painful
-- ORM queries were hard to maintain
-- Performance issues with sync code
-- FastAPI won us over with:
-  - Async support
-  - Modern Python features
-  - Better performance
-  - Cleaner architecture
+## The Legacy & Issues
+- Legacy Django projects with suboptimal structure
+- Fat models at best, spaghetti code at worst
+- Performance issues from sync code and ORM queries
+- Difficult to maintain, scale, and test
+- Hard to implement new features
+- Complex deployment process
+- Limited async capabilities
+
+## Our Approach
+- Kept existing Django services
+- Only rewrote one critical project to FastAPI
+- All new services built with FastAPI
+- Gradual transition strategy
 
 ---
 
-# The Freedom of FastAPI
+# Our Journey: ... To FastAPI
 
-- Minimal framework, maximum flexibility
+## Why FastAPI Won
+- **Performance**: Async-first, built for speed
+- **Modern**: Latest Python features
+- **Agility**: Freedom to structure our way
+- **Developer Experience**: Better tooling and type hints
 - No enforced architecture
-- Freedom to experiment and evolve
 - Perfect for organizational standards
 
-Our journey to find the right architecture:
+## Our Architecture Evolution
 - Started with domain-driven design
 - Experimented with Clean Architecture
-- Tried classical MVC
 - Found our sweet spot in Layered Architecture
-
-Why Layered Architecture won:
-- Simple enough for new team members
-- Flexible enough for complex domains
-- Consistent across all projects
-- Perfect balance of structure and freedom
 
 ---
 
@@ -160,26 +162,6 @@ async def create_foo(
 - DTO validation
 - Service injection
 - Same pattern for CLI/Celery
-
----
-
-# What is Dependency Injection?
-
-- Inversion of control
-- Services don't create their dependencies
-- Dependencies are provided from outside
-- Enables testing and flexibility
-
-```python
-class DependencyService:
-    def __init__(self, config: Config):
-        self.config = config
-
-    def get_foo_service(self) -> FooService:
-        if self.config.is_feature_enabled():
-            return EnhancedFooService()
-        return StandardFooService()
-```
 
 ---
 
@@ -259,74 +241,155 @@ class FooDTO(BaseModel):
 
 ---
 
+# Dependency Inversion Principle
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     │     ┌─────────────┐     ┌─────────────┐
+│ Component 1 │────▶│ Component 2 │────▶│ Component 3 │     │     │ Component 1 │────▶│ Interface 1 │
+└─────────────┘     └─────────────┘     └─────────────┘     │     └─────────────┘     └──────┬──────┘
+                                                            │                                │
+                                                            │                                ▼
+                                                            │                         ┌─────────────┐     ┌─────────────┐
+                                                            │                         │ Component 2 │────▶│ Interface 2 │
+                                                            │                         └─────────────┘     └──────┬──────┘
+                                                            │                                                    │
+                                                            │                                                    ▼
+                                                            │                                             ┌─────────────┐
+                                                            │                                             │ Component 3 │
+                                                            │                                             └─────────────┘
+```
+
+- High-level modules should not depend on low-level modules
+- Both should depend on abstractions
+- Abstractions should not depend on details
+- Details should depend on abstractions
+
+---
+
+# Dependency Injection with Dependency Service
+
+```python
+class DependencyService:
+    @staticmethod
+    def get_foo_service(
+        db: AsyncSession = Depends(get_db),
+    ) -> FooServiceInterface:
+        uow = SQLAUnitOfWork(db)
+        return FooService(
+            foo_dao=FooDAO(uow.db),
+            foo_client=FooClient(),
+            uow=uow,
+        )
+```
+
+- Simple service assembly
+- Clear dependencies
+- Easy to test
+- Extensible (singletons, caching, feature flags)
+
+---
+
 # Testing Strategy
 
 ```
-┌─────────────────┐
-│  Unit Tests     │
-│  (Services)     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Integration     │
-│ Tests (DAOs)    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  System Tests   │
-│  (Endpoints)    │
-└─────────────────┘
+        ┌─────────────────┐
+        │  System Tests   │
+        │  (API/Celery)   │
+        └────────┬────────┘
+                 │
+                 ▼
+    ┌─────────────────────────┐
+    │     Integration         │
+    │     Tests (DAOs)        │
+    └────────────┬────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│           Unit Tests            │
+│           (Services)            │
+└─────────────────────────────────┘
 ```
 
-## Unit Tests (Services)
+- System: End-to-end with all entry points
+- Integration: Test DAOs with real database
+- Unit: Mock all dependencies, test business logic
+
+---
+
+# System Tests
+
 ```python
-async def test_create_foo():
-    # Arrange
-    mock_dao = MockFooDAO()
-    service = FooService(mock_dao, MockUnitOfWork())
+class TestFooAPI:
+    @pytest.mark.anyio
+    async def test_get_foo(
+        self,
+        async_client: AsyncClient,  # async client of FastAPI
+    ) -> None:
+        # given
+        payload = { bar: "bar" }
+        response = await async_client.post("v1/foo/", json=payload)
+        foo_id = response.json()["id"]
 
-    # Act
-    result = await service.create_foo(foo_input)
+        # when
+        response = async_client.get(f"v1/foo/{foo_id}")
 
-    # Assert
-    assert result.name == foo_input.name
-    mock_dao.create.assert_called_once()
+        # then
+        assert response.status_code == 200
+        assert response.json() == {
+            "id": str(job.id),
+            "bar": "bar",
+        }
 ```
 
-## Integration Tests (DAOs)
-```python
-async def test_foo_dao_create():
-    # Arrange
-    async with AsyncSession(engine) as session:
-        dao = SQLAlchemyFooDAO(session)
+---
 
-        # Act
+# Integration Tests
+
+```python
+class TestFooDAO:
+    @pytest.mark.anyio
+    async def test_create(
+        self,
+        test_session: AsyncSession,
+    ) -> None:
+        # Given
+        dao = SQLAlchemyFooDAO(test_session)
+        foo_dto = FooDTO(bar="bar")
+
+        # When
         result = await dao.create(foo_dto)
 
-        # Assert
-        assert result.id is not None
-        assert result.name == foo_dto.name
+        # Then
+        assert result.bar == "bar"
 ```
 
-## System Tests (Endpoints)
+---
+
+# Unit Tests
+
 ```python
-def test_create_foo_endpoint():
-    # Arrange
-    client = TestClient(app)
+@pytest.mark.anyio
+class TestFooService:
+    async def test_foo_happy(self) -> None:
+      # given
+      foo_dao = AsyncMock(spec=FooDAOInterface)
+      foo_client = AsyncMock(spec=FooClientInterface)
+      foo_service = FooService(
+        foo_dao=foo_dao,
+        foo_client=foo_client
+      )
+      foo_id = "foo_id"
+      foo_dao.get_one.return_value = FooDTO(bar="bar", id="foo_id")
+      foo_client.get.return_value = FooDTO(bar="bar", id="foo_id")
 
-    # Act
-    response = client.post("/foos", json=foo_data)
+      # when
+      response = foo_service.get_one(foo_id=foo_id)
 
-    # Assert
-    assert response.status_code == 200
-    assert response.json()["name"] == foo_data["name"]
+      # then
+      assert response == FooDTO(bar="bar", id="foo_id")
+      foo_dao.get_one.assert_called_once_with(foo_id)
+      foo_client.get.assert_called_once_with(foo_id)
 ```
-
-- Unit: Mock dependencies, test business logic
-- Integration: Test DAOs with real database
-- System: End-to-end with TestClient
 
 ---
 

@@ -1,7 +1,7 @@
-from pydantic import BaseModel
+from .base import ModelConfigBaseModel
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(ModelConfigBaseModel):
     """Health check response model."""
 
     status: str

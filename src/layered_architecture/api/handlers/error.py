@@ -58,17 +58,58 @@ class ErrorHandler:
         )
 
     @classmethod
+    async def value_error_handler(
+        cls,
+        request: Request,
+        exc: Exception,
+    ) -> JSONResponse:
+        """Handle value errors."""
+        if not isinstance(exc, ValueError):
+            raise exc
+        logger.warning(f"ValueError: {str(exc)}")
+        return generate_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            errors=[
+                ErrorResponse(
+                    code="invalid_value",
+                    details=str(exc),
+                )
+            ],
+        )
+
+    @classmethod
+    async def type_error_handler(
+        cls,
+        request: Request,
+        exc: Exception,
+    ) -> JSONResponse:
+        """Handle type errors."""
+        if not isinstance(exc, TypeError):
+            raise exc
+        logger.warning(f"TypeError: {str(exc)}")
+        return generate_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            errors=[
+                ErrorResponse(
+                    code="invalid_type",
+                    details=str(exc),
+                )
+            ],
+        )
+
+    @classmethod
     async def server_error_handler(
         cls, request: Request, exc: Exception
     ) -> JSONResponse:
         """Handle server errors."""
         logger.error(f"Server error: {exc}")
+        error_msg = "An unexpected error occurred"
         return generate_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             errors=[
                 ErrorResponse(
                     code="server_error",
-                    details="An unexpected error occurred",
+                    details=error_msg,
                 )
             ],
         )
@@ -76,6 +117,7 @@ class ErrorHandler:
 
 def configure_exception_handlers(app: FastAPI) -> None:
     """Configure the global exception handlers for the application."""
+    # Most specific handlers first
     app.add_exception_handler(
         RequestValidationError,
         ErrorHandler.validation_error_handler,
@@ -84,6 +126,11 @@ def configure_exception_handlers(app: FastAPI) -> None:
         ValidationError,
         ErrorHandler.validation_error_handler,
     )
+    app.add_exception_handler(
+        ValueError,
+        ErrorHandler.value_error_handler,
+    )
+    # Most general handler last
     app.add_exception_handler(
         Exception,
         ErrorHandler.server_error_handler,

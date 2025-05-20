@@ -1,48 +1,27 @@
 # Python Meetup Presentation
 
-## Title options
-
-1. "Untangling the Request: How We Built a Layered FastAPI Architecture That Scales"
-2. "The Art of Layering: A FastAPI Architecture That Makes Sense"
-5. "Layers, Dependencies, and DTOs: A Tasty Architecture with FastAPI"
-6. "Pizza, Beer, and Dependency Injection: Building Scalable FastAPI Services"
-7. "From Endpoint to Entity: How We Built Async, Testable FastAPI Services"
-8. "Layered Architecture & Dependency Injection: The Perfect Recipe for Your FastAPI Pizza"
-9. "Dependency Injection & Layered Architecture: The Secret Sauce Behind Our FastAPI Kitchen"
-10. "Layered Architecture: The Pizza Box That Holds Your FastAPI Together"
-11. "Dependency Injection: The Extra Cheese in Your FastAPI Architecture"
-12. "Layered Architecture & Dependency Injection: The Perfect Pairing for FastAPI (and Beer!)"
-13. "From Request to Response: A Journey Through Layered Architecture & Dependency Injection"
-14. "Layered Architecture & Dependency Injection: The Path Your FastAPI Request Takes"
-15. "Dependency Injection & Layered Architecture: The Recipe for a Perfect Request Flow"
-16. "Layered Architecture: The Pizza Delivery Route for Your FastAPI Requests"
-17. "Dependency Injection: The Secret Map for Navigating FastAPI's Layers"
+## Title
+"Layered Architecture & Dependency Injection: A Recipe for Clean and Testable FastAPI Code"
 
 ## Architectural Evolution
 
-### Initial Phase
+### The Legacy & Issues
+- Legacy Django projects with suboptimal structure
+- Fat models at best, spaghetti code at worst
+- Performance issues from sync code and ORM queries
+- Difficult to maintain, scale, and test
+
+### Why FastAPI Won
+- **Performance**: Async-first, built for speed
+- **Modern**: Latest Python features
+- **Agility**: Freedom to structure our way
+
+### Our Architecture Evolution
 - Started with domain-driven design
-- Organized code by business domains
-- Each domain had its own structure
-- Led to inconsistency across projects
+- Experimented with Clean Architecture
+- Found our sweet spot in Layered Architecture
 
-### Experimentation Phase
-- Tried Clean Architecture
-  - Too complex for our needs
-  - Steep learning curve
-  - Overkill for simpler domains
-- Tested classical MVC
-  - Too rigid for our use cases
-  - Didn't handle async well
-  - Hard to test
-
-### Finding Our Path
-- FastAPI's minimalism gave us freedom
-- No enforced architecture
-- Could experiment and evolve
-- Perfect for organizational standards
-
-### Why Layered Architecture Won
+### Why Layered Architecture?
 - Simple enough for new team members
 - Flexible enough for complex domains
 - Consistent across all projects
@@ -236,46 +215,104 @@ I recommend using Marp as it's specifically designed for markdown presentations 
 
 # Testing Strategy
 
-## Unit Tests
-- Mock all dependencies (DAOs, UnitOfWork)
-- Focus on business logic
-- Fast execution
-- Easy to write and maintain
-- Example:
-  ```python
-  async def test_create_foo():
-      mock_dao = MockFooDAO()
-      service = FooService(mock_dao, MockUnitOfWork())
-      result = await service.create_foo(foo_input)
-      assert result.name == foo_input.name
-  ```
+## System Tests
+- Test complete request flow
+- Use FastAPI's AsyncClient
+- Test API contracts
+- Follow given/when/then pattern
+
+### Guidelines
+- No mocking whatsoever in e2e tests
+- Use mock servers for external services
+- Use test endpoints to create resources (not in production)
+- Avoid factories (they could break with DAO refactoring)
+
+Example:
+```python
+class TestFooAPI:
+    @pytest.mark.anyio
+    async def test_get_foo(
+        self,
+        async_client: AsyncClient,
+    ) -> None:
+        # given
+        payload = { bar: "bar" }
+        response = await async_client.post("v1/foo/", json=payload)
+        foo_id = response.json()["id"]
+
+        # when
+        response = async_client.get(f"v1/foo/{foo_id}")
+
+        # then
+        assert response.status_code == 200
+        assert response.json() == {
+            "id": str(job.id),
+            "bar": "bar",
+        }
+```
 
 ## Integration Tests
 - Test DAOs against real database
-- Validate SQL queries
-- Test database constraints
-- Use test database
-- Example:
-  ```python
-  async def test_foo_dao_create():
-      async with AsyncSession(engine) as session:
-          dao = SQLAlchemyFooDAO(session)
-          result = await dao.create(foo_dto)
-          assert result.id is not None
-  ```
+- Validate SQL queries and constraints
+- Test transaction boundaries
+- Use test database with rollbacks
+- Focus on data persistence
+- Verify database state
 
-## System Tests
-- Use FastAPI's TestClient
-- No mocking
-- Test complete request flow
-- Validate API contracts
-- Example:
-  ```python
-  def test_create_foo_endpoint():
-      client = TestClient(app)
-      response = client.post("/foos", json=foo_data)
-      assert response.status_code == 200
-  ```
+Example:
+```python
+@pytest.mark.anyio
+async def test_foo_dao_create(db: AsyncSession) -> None:
+    # Arrange
+    dao = SQLAlchemyFooDAO(db)
+    foo_dto = FooDTO(name="test", items=[])
+
+    # Act
+    result = await dao.create(foo_dto)
+
+    # Assert
+    assert result.id is not None
+    assert result.name == foo_dto.name
+
+    # Verify in database
+    db_foo = await db.get(Foo, result.id)
+    assert db_foo is not None
+    assert db_foo.name == foo_dto.name
+```
+
+## Unit Tests
+- Mock all dependencies
+- Focus on business logic
+- Fast execution
+- Test edge cases
+- Verify business rules
+- Use AsyncMock for async dependencies
+- Test service behavior in isolation
+
+Example:
+```python
+@pytest.mark.anyio
+class TestFooService:
+    async def test_foo_happy(self) -> None:
+        # given
+        foo_dao = AsyncMock(spec=FooDAOInterface)
+        foo_client = AsyncMock(spec=FooClientInterface)
+        foo_service = FooService(
+            foo_dao=foo_dao,
+            foo_client=foo_client
+        )
+        foo_id = "foo_id"
+        foo_dao.get_one.return_value = FooDTO(bar="bar", id="foo_id")
+        foo_client.get.return_value = FooDTO(bar="bar", id="foo_id")
+
+        # when
+        response = foo_service.get_one(foo_id=foo_id)
+
+        # then
+        assert response == FooDTO(bar="bar", id="foo_id")
+        foo_dao.get_one.assert_called_once_with(foo_id)
+        foo_client.get.assert_called_once_with(foo_id)
+```
 
 ## Benefits
 - Clear separation of concerns

@@ -1,10 +1,13 @@
 from decimal import Decimal
 from typing import Annotated, List
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from .base import ModelConfigBaseModel
+from layered_architecture.enums import StoreType
 
 
-class OrderItemDTO(BaseModel):
+class OrderItemDTO(ModelConfigBaseModel):
     product_id: Annotated[str, Field(description="The ID of the product")]
     quantity: Annotated[
         int, Field(description="The quantity of the product", ge=1)
@@ -15,8 +18,10 @@ class OrderItemDTO(BaseModel):
     ]
 
 
-class OrderInputDTO(BaseModel):
-    store_id: Annotated[str, Field(description="The ID of the store")]
+class OrderInputDTO(ModelConfigBaseModel):
+    store_type: Annotated[
+        StoreType, Field(description="The type of the store")
+    ]
     customer_id: Annotated[str, Field(description="The ID of the customer")]
     items: Annotated[
         List[OrderItemDTO], Field(description="The items in the order")
@@ -26,9 +31,11 @@ class OrderInputDTO(BaseModel):
     ]
 
 
-class OrderDTO(BaseModel):
+class OrderDTO(ModelConfigBaseModel):
     id: Annotated[str, Field(description="The ID of the order")]
-    store_id: Annotated[str, Field(description="The ID of the store")]
+    store_type: Annotated[
+        StoreType, Field(description="The type of the store")
+    ]
     customer_id: Annotated[str, Field(description="The ID of the customer")]
     items: Annotated[
         List[OrderItemDTO], Field(description="The items in the order")

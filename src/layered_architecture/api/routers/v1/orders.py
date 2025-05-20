@@ -15,12 +15,12 @@ async def create_order(
     """Create a new order.
 
     Args:
-        order_input: The order input data including store_id
+        order_input: The order input data including store_type
 
     Returns:
         The created order
     """
     order_service = DependencyService.get_order_service(
-        order_input.store_id, db
+        order_input.store_type, db
     )
     return await order_service.create_order(order_input)

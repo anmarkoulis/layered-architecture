@@ -1,9 +1,12 @@
 from decimal import Decimal
+from logging import getLogger
 
 from layered_architecture.dao.interfaces import BeerDAO, OrderDAO, PizzaDAO
 from layered_architecture.db.uow import SQLAUnitOfWork
 from layered_architecture.dto.order import OrderDTO, OrderInputDTO
 from layered_architecture.services.interfaces.order import OrderService
+
+logger = getLogger(__name__)
 
 
 class DowntownOrderService(OrderService):
@@ -25,6 +28,7 @@ class DowntownOrderService(OrderService):
 
     async def create_order(self, order_input: OrderInputDTO) -> OrderDTO:
         """Create a downtown store order with special pricing."""
+        logger.info("Creating order for downtown store")
         async with self.uow:
             # Calculate subtotal
             subtotal = Decimal("0")

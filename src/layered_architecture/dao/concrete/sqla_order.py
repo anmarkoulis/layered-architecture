@@ -24,7 +24,7 @@ class SQLOrderDAO(OrderDAO):
     async def create(self, order_input: OrderInputDTO) -> OrderDTO:
         # Create order
         order = Order(
-            store_id=order_input.store_id,
+            store_type=order_input.store_type,
             customer_id=order_input.customer_id,
             status="pending",
             total_amount=str(order_input.total),
@@ -53,7 +53,7 @@ class SQLOrderDAO(OrderDAO):
 
         return OrderDTO(
             id=str(order.id),
-            store_id=order.store_id,
+            store_type=order.store_type,
             customer_id=order_input.customer_id,
             items=order_input.items,
             total=order_input.total,
@@ -104,7 +104,7 @@ class SQLOrderDAO(OrderDAO):
 
         return OrderDTO(
             id=str(order.id),
-            store_id=order.store_id,
+            store_type=order.store_type,
             customer_id=order.customer_id,
             items=items,
             total=Decimal(order.total_amount),
@@ -154,7 +154,7 @@ class SQLOrderDAO(OrderDAO):
             order_dtos.append(
                 OrderDTO(
                     id=str(order.id),
-                    store_id=order.store_id,
+                    store_type=order.store_type,
                     customer_id=order.customer_id,
                     items=items,
                     total=Decimal(order.total_amount),

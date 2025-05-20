@@ -9,7 +9,7 @@ env = Env()
 def get_logging_config(log_level: str) -> dict:
     return {
         "version": 1,
-        "disable_existing_loggers": True,
+        "disable_existing_loggers": False,
         "formatters": {
             "verbose": {
                 "format": "{levelname} {asctime} {process} {thread} "
@@ -18,21 +18,16 @@ def get_logging_config(log_level: str) -> dict:
             },
         },
         "handlers": {
-            "media_downloader": {
+            "layered_architecture": {
                 "level": log_level,
                 "class": "logging.StreamHandler",
                 "formatter": "verbose",
             },
         },
         "loggers": {
-            "media_downloader": {
-                "handlers": ["media_downloader"],
+            "layered_architecture": {
+                "handlers": ["layered_architecture"],
                 "level": log_level,
-                "propagate": False,
-            },
-            "celery": {
-                "handlers": ["media_downloader"],
-                "level": "ERROR",
                 "propagate": False,
             },
         },

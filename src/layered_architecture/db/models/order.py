@@ -1,26 +1,35 @@
-from datetime import datetime
+from decimal import Decimal
+from typing import Optional
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
-from layered_architecture.db.models.mixins import UUIDMixin
+from layered_architecture.db.models.mixins import (
+    CreatedAtMixin,
+    UpdatedAtMixin,
+    UUIDMixin,
+)
+from layered_architecture.enums import StoreType
 
 
-class Order(Base, UUIDMixin):
-    """Order model."""
+class Order(Base, CreatedAtMixin, UpdatedAtMixin, UUIDMixin):
+    """Order model representing a customer order in the system."""
 
-    store_id = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False,
+    store_type: Mapped[StoreType] = mapped_column(nullable=False)
+    customer_id: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False
     )
-    status = Column(String, nullable=False)
-    total_amount = Column(String, nullable=False)
-    customer_name = Column(String, nullable=True)
-    customer_email = Column(String, nullable=True)
-    customer_phone = Column(String, nullable=True)
-    delivery_address = Column(String, nullable=True)
-    notes = Column(String, nullable=True)
+    customer_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    customer_email: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    customer_phone: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    delivery_address: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)

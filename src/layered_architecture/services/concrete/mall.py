@@ -54,7 +54,7 @@ class MallOrderService(OrderService):
 
             # Create order with mall pricing
             order = await self.order_dao.create(
-                store_id=order_input.store_id,
+                store_type=order_input.store_type,
                 customer_id=order_input.customer_id,
                 total=final_total,
                 items=order_input.items,

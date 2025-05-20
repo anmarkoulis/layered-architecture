@@ -31,3 +31,6 @@ install-pre-commit: ## Install pre-commit hooks
 
 sync: ## Sync the project
 	uv sync
+
+dbshell: ## Open PSQL shell
+	docker compose exec postgres psql -U postgres -d layered_arch

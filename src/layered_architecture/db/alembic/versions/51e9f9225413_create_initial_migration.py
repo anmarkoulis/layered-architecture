@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 99f1ebf9bf4c
+Revision ID: 51e9f9225413
 Revises:
-Create Date: 2025-05-11 15:34:24.170301
+Create Date: 2025-05-19 22:26:20.939746
 
 """
 
@@ -10,10 +10,10 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "99f1ebf9bf4c"
-down_revision = None
-branch_labels = None
-depends_on = None
+revision = "51e9f9225413"  # pragma: allowlist secret
+down_revision = None  # pragma: allowlist secret
+branch_labels = None  # pragma: allowlist secret
+depends_on = None  # pragma: allowlist secret
 
 
 def upgrade() -> None:
@@ -36,16 +36,35 @@ def upgrade() -> None:
     )
     op.create_table(
         "order",
-        sa.Column("store_id", sa.String(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column(
+            "store_type",
+            sa.Enum(
+                "CORPORATE",
+                "DELIVERY",
+                "DOWNTOWN",
+                "LATE_NIGHT",
+                "MALL",
+                name="storetype",
+            ),
+            nullable=False,
+        ),
+        sa.Column("customer_id", sa.String(), nullable=False),
         sa.Column("status", sa.String(), nullable=False),
-        sa.Column("total_amount", sa.String(), nullable=False),
+        sa.Column(
+            "total_amount", sa.Numeric(precision=10, scale=2), nullable=False
+        ),
         sa.Column("customer_name", sa.String(), nullable=True),
         sa.Column("customer_email", sa.String(), nullable=True),
         sa.Column("customer_phone", sa.String(), nullable=True),
         sa.Column("delivery_address", sa.String(), nullable=True),
         sa.Column("notes", sa.String(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("id", sa.UUID(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )

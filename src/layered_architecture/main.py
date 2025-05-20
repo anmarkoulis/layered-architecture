@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from layered_architecture.api.handlers import (
     configure_exception_handlers,
+    configure_logging,
     configure_middlewares,
     configure_routers,
 )
@@ -19,3 +20,4 @@ app = FastAPI(
 configure_exception_handlers(app)
 configure_middlewares(app)
 configure_routers(app)
+configure_logging()

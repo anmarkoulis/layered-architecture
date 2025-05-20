@@ -9,7 +9,7 @@ class OrderService(ABC):
         """Create a new order.
 
         Args:
-            order_input: The order input data including store_id
+            order_input: The order input data including store_type
 
         Returns:
             The created order

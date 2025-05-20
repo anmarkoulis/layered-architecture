@@ -1,9 +1,9 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from .base import ModelConfigBaseModel
 
 
-class ErrorResponse(BaseModel):
+class ErrorResponse(ModelConfigBaseModel):
     """Schema for a single error response."""
 
     code: str
@@ -12,7 +12,7 @@ class ErrorResponse(BaseModel):
     key: Optional[str] = None
 
 
-class ErrorEnvelope(BaseModel):
+class ErrorEnvelope(ModelConfigBaseModel):
     """Schema for the error response envelope."""
 
     errors: List[ErrorResponse]
