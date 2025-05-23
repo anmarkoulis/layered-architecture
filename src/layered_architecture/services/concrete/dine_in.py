@@ -13,11 +13,13 @@ from layered_architecture.dto.order import (
     OrderDTO,
     OrderInputDTO,
     OrderItemDTO,
+    OrderItemInputDTO,
     OrderUpdateDTO,
     OrderUpdateInternalDTO,
 )
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
+from layered_architecture.exceptions import NotFoundError
 from layered_architecture.services.interfaces.order import (
     OrderServiceInterface,
 )
@@ -66,8 +68,9 @@ class DineInOrderService(OrderServiceInterface):
                 if item.type == "pizza":
                     pizza = await self.pizza_dao.get_by_name(item.product_name)
                     if not pizza:
-                        raise ValueError(
-                            f"Pizza {item.product_name} not found"
+                        raise NotFoundError(
+                            resource_type="pizza",
+                            resource_id=item.product_name,
                         )
                     subtotal += pizza.price * item.quantity
                     response_items.append(
@@ -81,7 +84,10 @@ class DineInOrderService(OrderServiceInterface):
                 elif item.type == "beer":
                     beer = await self.beer_dao.get_by_name(item.product_name)
                     if not beer:
-                        raise ValueError(f"Beer {item.product_name} not found")
+                        raise NotFoundError(
+                            resource_type="beer",
+                            resource_id=item.product_name,
+                        )
                     subtotal += beer.price * item.quantity
                     response_items.append(
                         OrderItemDTO(
@@ -96,33 +102,24 @@ class DineInOrderService(OrderServiceInterface):
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Create order with standard pricing (no surcharges or discounts)
+            # No surcharges or discounts for dine-in
+            total = subtotal
+
             order_create_dto = OrderCreateInternalDTO(
                 service_type=ServiceType.DINE_IN,
-                items=order_input.items,  # Keep original items for DAO
+                items=order_input.items,
                 notes=order_input.notes,
                 customer_id=user.id,
                 subtotal=subtotal,
-                total=subtotal,  # No surcharges or discounts
+                total=total,
                 customer_email=user.email,
             )
 
-            # Create order in database
             created_order = await self.order_dao.create(order_create_dto)
-
-            # Return order with proper item DTOs
-            return OrderDTO(
-                id=created_order.id,
-                service_type=created_order.service_type,
-                customer_id=created_order.customer_id,
-                status=created_order.status,
-                items=response_items,  # Use items with product_id and price
-                total=created_order.total,
-                customer_email=created_order.customer_email,
-                notes=created_order.notes,
-                created_at=created_order.created_at,
-                updated_at=created_order.updated_at,
+            logger.info(
+                f"Created dine-in order {created_order.id} for user {user.id}"
             )
+            return created_order
 
     async def check_status(
         self,
@@ -141,7 +138,10 @@ class DineInOrderService(OrderServiceInterface):
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
-                raise ValueError(f"Order {order_id} not found")
+                raise NotFoundError(
+                    resource_type="order",
+                    resource_id=str(order_id),
+                )
             if order.customer_id != user.id:
                 logger.error(
                     f"User {user.id} is not the customer of order {order.customer_id}"
@@ -176,7 +176,10 @@ class DineInOrderService(OrderServiceInterface):
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
-                raise ValueError(f"Order {order_id} not found")
+                raise NotFoundError(
+                    resource_type="order",
+                    resource_id=str(order_id),
+                )
             if order.customer_id != user.id:
                 raise ValueError("Unauthorized to update this order")
             if order.status in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
@@ -192,14 +195,18 @@ class DineInOrderService(OrderServiceInterface):
                 if item.type == "pizza":
                     pizza = await self.pizza_dao.get_by_name(item.product_name)
                     if not pizza:
-                        raise ValueError(
-                            f"Pizza {item.product_name} not found"
+                        raise NotFoundError(
+                            resource_type="pizza",
+                            resource_id=item.product_name,
                         )
                     subtotal += pizza.price * item.quantity
                 elif item.type == "beer":
                     beer = await self.beer_dao.get_by_name(item.product_name)
                     if not beer:
-                        raise ValueError(f"Beer {item.product_name} not found")
+                        raise NotFoundError(
+                            resource_type="beer",
+                            resource_id=item.product_name,
+                        )
                     subtotal += beer.price * item.quantity
                 else:
                     raise ValueError(
@@ -246,7 +253,10 @@ class DineInOrderService(OrderServiceInterface):
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
-                raise ValueError(f"Order {order_id} not found")
+                raise NotFoundError(
+                    resource_type="order",
+                    resource_id=str(order_id),
+                )
             if order.customer_id != user.id:
                 raise ValueError("Unauthorized to cancel this order")
             if order.status in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
@@ -256,9 +266,43 @@ class DineInOrderService(OrderServiceInterface):
 
             notes = f"Cancelled: {reason}" if reason else order.notes
 
+            # Convert OrderItemDTO to OrderItemInputDTO
+            items = []
+            for item in order.items:
+                if item.type == "pizza":
+                    pizza = await self.pizza_dao.get_by_id(
+                        str(item.product_id)
+                    )
+                    if not pizza:
+                        raise NotFoundError(
+                            resource_type="pizza",
+                            resource_id=str(item.product_id),
+                        )
+                    items.append(
+                        OrderItemInputDTO(
+                            type="pizza",
+                            product_name=pizza.name,
+                            quantity=item.quantity,
+                        )
+                    )
+                elif item.type == "beer":
+                    beer = await self.beer_dao.get_by_id(str(item.product_id))
+                    if not beer:
+                        raise NotFoundError(
+                            resource_type="beer",
+                            resource_id=str(item.product_id),
+                        )
+                    items.append(
+                        OrderItemInputDTO(
+                            type="beer",
+                            product_name=beer.name,
+                            quantity=item.quantity,
+                        )
+                    )
+
             update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.DINE_IN,
-                items=order.items,
+                items=items,
                 notes=notes,
                 status=OrderStatus.CANCELLED,
                 customer_id=user.id,

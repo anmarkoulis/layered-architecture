@@ -52,6 +52,10 @@ class Settings(BaseSettings):
         "DATABASE_URL",
         "postgresql+asyncpg://postgres:postgres@localhost:5432/layered_arch",  # pragma: allowlist secret
     )
+    TEST_DATABASE_URL: str = env.str(
+        "TEST_DATABASE_URL",
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/test_db",  # pragma: allowlist secret
+    )
 
     # Security
     BACKEND_CORS_ORIGINS: List[str] = env.list("BACKEND_CORS_ORIGINS", ["*"])

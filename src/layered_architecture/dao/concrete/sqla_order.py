@@ -1,6 +1,6 @@
 from typing import Callable, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from layered_architecture.dao.interfaces import OrderDAOInterface
@@ -46,6 +46,7 @@ class SQLOrderDAO(OrderDAOInterface):
             subtotal=order_input.subtotal,
             total=order_input.total,
             notes=order_input.notes,
+            delivery_address=order_input.delivery_address,
         )
 
         # Add order first and flush to get the ID
@@ -116,6 +117,7 @@ class SQLOrderDAO(OrderDAOInterface):
             notes=order_input.notes,
             created_at=order.created_at,
             updated_at=order.updated_at,
+            delivery_address=order.delivery_address,
         )
 
     async def get_by_id(
@@ -191,6 +193,7 @@ class SQLOrderDAO(OrderDAOInterface):
             notes=order.notes,
             created_at=order.created_at,
             updated_at=order.updated_at,
+            delivery_address=order.delivery_address,
         )
 
     async def get_all(self) -> List[OrderDTO]:
@@ -253,6 +256,7 @@ class SQLOrderDAO(OrderDAOInterface):
                     notes=order.notes,
                     created_at=order.created_at,
                     updated_at=order.updated_at,
+                    delivery_address=order.delivery_address,
                 )
             )
 
@@ -287,7 +291,68 @@ class SQLOrderDAO(OrderDAOInterface):
             order.total = update_data.total
         if update_data.subtotal is not None:
             order.subtotal = update_data.subtotal
+        if update_data.delivery_address is not None:
+            order.delivery_address = update_data.delivery_address
 
+        # Delete existing items
+        await self.session.execute(
+            delete(OrderPizza).where(OrderPizza.order_id == order_id)
+        )
+        await self.session.execute(
+            delete(OrderBeer).where(OrderBeer.order_id == order_id)
+        )
+
+        # Add new items
+        items: List[OrderItemDTO] = []
+        for item in update_data.items:
+            if item.type == "pizza":
+                # Look up pizza by name
+                pizza_result = await self.session.execute(
+                    select(Pizza).where(Pizza.name == item.product_name)
+                )
+                pizza = pizza_result.scalar_one_or_none()
+                if not pizza:
+                    raise ValueError(f"Pizza {item.product_name} not found")
+
+                order_pizza = OrderPizza(
+                    order_id=order.id,
+                    pizza_id=pizza.id,
+                    quantity=item.quantity,
+                )
+                self.session.add(order_pizza)
+                items.append(
+                    OrderItemDTO(
+                        product_id=pizza.id,
+                        quantity=item.quantity,
+                        price=pizza.price,
+                        type="pizza",
+                    )
+                )
+            elif item.type == "beer":
+                # Look up beer by name
+                beer_result = await self.session.execute(
+                    select(Beer).where(Beer.name == item.product_name)
+                )
+                beer = beer_result.scalar_one_or_none()
+                if not beer:
+                    raise ValueError(f"Beer {item.product_name} not found")
+
+                order_beer = OrderBeer(
+                    order_id=order.id,
+                    beer_id=beer.id,
+                    quantity=item.quantity,
+                )
+                self.session.add(order_beer)
+                items.append(
+                    OrderItemDTO(
+                        product_id=beer.id,
+                        quantity=item.quantity,
+                        price=beer.price,
+                        type="beer",
+                    )
+                )
+
+        # Flush changes to ensure they are visible in the current session
         await self.session.flush()
 
         # Get updated order with items

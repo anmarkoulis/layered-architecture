@@ -13,11 +13,13 @@ from layered_architecture.dto.order import (
     OrderCreateInternalDTO,
     OrderDTO,
     OrderInputDTO,
+    OrderItemInputDTO,
     OrderUpdateDTO,
     OrderUpdateInternalDTO,
 )
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
+from layered_architecture.exceptions import NotFoundError
 from layered_architecture.services.interfaces.order import (
     OrderServiceInterface,
 )
@@ -87,14 +89,18 @@ class LateNightOrderService(OrderServiceInterface):
                 if item.type == "pizza":
                     pizza = await self.pizza_dao.get_by_name(item.product_name)
                     if not pizza:
-                        raise ValueError(
-                            f"Pizza {item.product_name} not found"
+                        raise NotFoundError(
+                            resource_type="pizza",
+                            resource_id=item.product_name,
                         )
                     subtotal += pizza.price * item.quantity
                 elif item.type == "beer":
                     beer = await self.beer_dao.get_by_name(item.product_name)
                     if not beer:
-                        raise ValueError(f"Beer {item.product_name} not found")
+                        raise NotFoundError(
+                            resource_type="beer",
+                            resource_id=item.product_name,
+                        )
                     subtotal += beer.price * item.quantity
                 else:
                     raise ValueError(
@@ -113,6 +119,7 @@ class LateNightOrderService(OrderServiceInterface):
                 subtotal=subtotal,
                 total=total,
                 customer_email=user.email,
+                delivery_address=order_input.delivery_address,
             )
 
             created_order = await self.order_dao.create(order_create_dto)
@@ -138,7 +145,10 @@ class LateNightOrderService(OrderServiceInterface):
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
-                raise ValueError(f"Order {order_id} not found")
+                raise NotFoundError(
+                    resource_type="order",
+                    resource_id=str(order_id),
+                )
             if order.customer_id != user.id:
                 raise ValueError("Unauthorized to check this order")
 
@@ -147,7 +157,7 @@ class LateNightOrderService(OrderServiceInterface):
     async def update_order(
         self,
         order_id: UUID,
-        order_input: OrderInputDTO,
+        order_input: OrderUpdateDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
         """Update a late night order.
@@ -155,7 +165,7 @@ class LateNightOrderService(OrderServiceInterface):
         :param order_id: The ID of the order to update
         :type order_id: UUID
         :param order_input: The updated order data
-        :type order_input: OrderInputDTO
+        :type order_input: OrderUpdateDTO
         :param user: The user updating the order
         :type user: UserReadDTO
         :return: The updated order
@@ -169,7 +179,10 @@ class LateNightOrderService(OrderServiceInterface):
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
-                raise ValueError(f"Order {order_id} not found")
+                raise NotFoundError(
+                    resource_type="order",
+                    resource_id=str(order_id),
+                )
             if order.customer_id != user.id:
                 raise ValueError("Unauthorized to update this order")
             if order.status in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
@@ -187,33 +200,37 @@ class LateNightOrderService(OrderServiceInterface):
                 if item.type == "pizza":
                     pizza = await self.pizza_dao.get_by_name(item.product_name)
                     if not pizza:
-                        raise ValueError(
-                            f"Pizza {item.product_name} not found"
+                        raise NotFoundError(
+                            resource_type="pizza",
+                            resource_id=item.product_name,
                         )
                     subtotal += pizza.price * item.quantity
                 elif item.type == "beer":
                     beer = await self.beer_dao.get_by_name(item.product_name)
                     if not beer:
-                        raise ValueError(f"Beer {item.product_name} not found")
+                        raise NotFoundError(
+                            resource_type="beer",
+                            resource_id=item.product_name,
+                        )
                     subtotal += beer.price * item.quantity
                 else:
                     raise ValueError(
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Apply late night surcharge
-            surcharge = subtotal * self.LATE_NIGHT_SURCHARGE
-            total = subtotal + surcharge
+            # Add 20% surcharge for late night orders
+            total = subtotal * Decimal("1.20")
 
-            update_dto = OrderUpdateDTO(
+            update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.LATE_NIGHT,
                 items=order_input.items,
                 notes=order_input.notes,
-                status=order.status,
+                status=order_input.status,
                 customer_id=user.id,
                 subtotal=subtotal,
                 total=total,
                 customer_email=user.email,
+                delivery_address=order_input.delivery_address,
             )
 
             updated_order = await self.order_dao.update(
@@ -244,7 +261,10 @@ class LateNightOrderService(OrderServiceInterface):
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
-                raise ValueError(f"Order {order_id} not found")
+                raise NotFoundError(
+                    resource_type="order",
+                    resource_id=str(order_id),
+                )
             if order.customer_id != user.id:
                 raise ValueError("Unauthorized to cancel this order")
             if order.status in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
@@ -254,15 +274,50 @@ class LateNightOrderService(OrderServiceInterface):
 
             notes = f"Cancelled: {reason}" if reason else order.notes
 
+            # Convert OrderItemDTO to OrderItemInputDTO
+            items = []
+            for item in order.items:
+                if item.type == "pizza":
+                    pizza = await self.pizza_dao.get_by_id(
+                        str(item.product_id)
+                    )
+                    if not pizza:
+                        raise NotFoundError(
+                            resource_type="pizza",
+                            resource_id=str(item.product_id),
+                        )
+                    items.append(
+                        OrderItemInputDTO(
+                            type="pizza",
+                            product_name=pizza.name,
+                            quantity=item.quantity,
+                        )
+                    )
+                elif item.type == "beer":
+                    beer = await self.beer_dao.get_by_id(str(item.product_id))
+                    if not beer:
+                        raise NotFoundError(
+                            resource_type="beer",
+                            resource_id=str(item.product_id),
+                        )
+                    items.append(
+                        OrderItemInputDTO(
+                            type="beer",
+                            product_name=beer.name,
+                            quantity=item.quantity,
+                        )
+                    )
+
             update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.LATE_NIGHT,
-                items=order.items,
+                items=items,
                 notes=notes,
                 status=OrderStatus.CANCELLED,
                 customer_id=user.id,
                 subtotal=order.total,
                 total=order.total,
                 customer_email=user.email,
+                delivery_address=order.delivery_address,
             )
 
             cancelled_order = await self.order_dao.update(

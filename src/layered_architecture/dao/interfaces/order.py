@@ -8,7 +8,7 @@ from layered_architecture.dto.order import (
 )
 
 
-class OrderDAOInterface(ABC):
+class OrderDAOInterface(ABC):  # pragma: no cover
     """Interface for order data access."""
 
     @abstractmethod

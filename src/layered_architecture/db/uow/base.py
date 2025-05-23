@@ -6,7 +6,7 @@ from typing import Any, Optional, Type
 logger = getLogger(__name__)
 
 
-class BaseUnitOfWork(ABC):
+class BaseUnitOfWork(ABC):  # pragma: no cover
     async def __aenter__(self) -> "BaseUnitOfWork":
         return self
 

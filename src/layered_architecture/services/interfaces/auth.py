@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from layered_architecture.dto.user import UserReadDTO
 
 
-class AuthServiceInterface(ABC):
+class AuthServiceInterface(ABC):  # pragma: no cover
     """Interface for authentication services."""
 
     @staticmethod

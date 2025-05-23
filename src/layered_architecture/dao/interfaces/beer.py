@@ -4,7 +4,7 @@ from typing import List, Optional
 from layered_architecture.dto.beer import BeerDTO
 
 
-class BeerDAOInterface(ABC):
+class BeerDAOInterface(ABC):  # pragma: no cover
     """Interface for beer data access."""
 
     @abstractmethod

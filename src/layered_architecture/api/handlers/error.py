@@ -10,6 +10,10 @@ from starlette.applications import Starlette
 from starlette.responses import Response
 
 from layered_architecture.dto import ErrorEnvelope, ErrorResponse
+from layered_architecture.exceptions import (
+    LayeredArchitectureException,
+    NotFoundError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,50 @@ class ErrorHandler:
         e = exc.errors()[0]
         key = str(e["loc"][-1]) if len(e["loc"]) > 1 else None
         return key, None, e["msg"]
+
+    @classmethod
+    async def not_found_error_handler(
+        cls,
+        request: Request,
+        exc: Exception,
+    ) -> JSONResponse:
+        """Handle not found errors."""
+        if not isinstance(exc, NotFoundError):
+            raise exc
+        logger.warning(f"NotFoundError: {str(exc)}")
+        return generate_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            errors=[
+                ErrorResponse(
+                    code=exc.code,
+                    details=exc.details,
+                    message=exc.message,
+                    key=exc.key,
+                )
+            ],
+        )
+
+    @classmethod
+    async def layered_architecture_error_handler(
+        cls,
+        request: Request,
+        exc: Exception,
+    ) -> JSONResponse:
+        """Handle layered architecture exceptions."""
+        if not isinstance(exc, LayeredArchitectureException):
+            raise exc
+        logger.error(f"{exc.__class__.__name__}: {str(exc)}")
+        return generate_response(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            errors=[
+                ErrorResponse(
+                    code=exc.code,
+                    details=exc.details,
+                    message=exc.message,
+                    key=exc.key,
+                )
+            ],
+        )
 
     @classmethod
     async def validation_error_handler(
@@ -127,8 +175,20 @@ def configure_exception_handlers(app: FastAPI) -> None:
         ErrorHandler.validation_error_handler,
     )
     app.add_exception_handler(
+        NotFoundError,
+        ErrorHandler.not_found_error_handler,
+    )
+    app.add_exception_handler(
         ValueError,
         ErrorHandler.value_error_handler,
+    )
+    app.add_exception_handler(
+        TypeError,
+        ErrorHandler.type_error_handler,
+    )
+    app.add_exception_handler(
+        LayeredArchitectureException,
+        ErrorHandler.layered_architecture_error_handler,
     )
     # Most general handler last
     app.add_exception_handler(
@@ -149,6 +209,7 @@ async def validation_exception_handler(
 
 
 def register_error_handlers(app: Starlette) -> None:
+    """Register error handlers for the Starlette application."""
     app.add_exception_handler(
         ValidationError,
         validation_exception_handler,
@@ -156,4 +217,24 @@ def register_error_handlers(app: Starlette) -> None:
     app.add_exception_handler(
         RequestValidationError,
         validation_exception_handler,
+    )
+    app.add_exception_handler(
+        NotFoundError,
+        ErrorHandler.not_found_error_handler,
+    )
+    app.add_exception_handler(
+        ValueError,
+        ErrorHandler.value_error_handler,
+    )
+    app.add_exception_handler(
+        TypeError,
+        ErrorHandler.type_error_handler,
+    )
+    app.add_exception_handler(
+        LayeredArchitectureException,
+        ErrorHandler.layered_architecture_error_handler,
+    )
+    app.add_exception_handler(
+        Exception,
+        ErrorHandler.server_error_handler,
     )

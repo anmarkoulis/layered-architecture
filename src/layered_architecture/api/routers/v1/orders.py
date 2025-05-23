@@ -11,7 +11,7 @@ from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.services.concrete.fake_auth import FakeAuthService
 from layered_architecture.services.dependency import DependencyService
 
-router = APIRouter(prefix="/orders")
+router = APIRouter()
 
 
 @router.post("/", response_model=OrderDTO, status_code=201)

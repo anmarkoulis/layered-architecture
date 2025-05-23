@@ -6,7 +6,7 @@ from layered_architecture.dto.order import OrderDTO, OrderInputDTO
 from layered_architecture.dto.user import UserReadDTO
 
 
-class OrderServiceInterface(ABC):
+class OrderServiceInterface(ABC):  # pragma: no cover
     """Interface for order services."""
 
     @abstractmethod
