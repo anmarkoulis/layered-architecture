@@ -223,7 +223,7 @@ class TakeawayOrderService(OrderServiceInterface):
                 notes=notes,
                 status=OrderStatus.CANCELLED,
                 customer_id=user.id,
-                subtotal=order.subtotal,
+                subtotal=order.total,
                 total=order.total,
                 customer_email=user.email,
             )

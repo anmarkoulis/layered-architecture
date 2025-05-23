@@ -14,6 +14,7 @@ from layered_architecture.dto.order import (
     OrderDTO,
     OrderInputDTO,
     OrderUpdateDTO,
+    OrderUpdateInternalDTO,
 )
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
@@ -253,13 +254,13 @@ class LateNightOrderService(OrderServiceInterface):
 
             notes = f"Cancelled: {reason}" if reason else order.notes
 
-            update_dto = OrderUpdateDTO(
+            update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.LATE_NIGHT,
                 items=order.items,
                 notes=notes,
                 status=OrderStatus.CANCELLED,
                 customer_id=user.id,
-                subtotal=order.subtotal,
+                subtotal=order.total,
                 total=order.total,
                 customer_email=user.email,
             )
