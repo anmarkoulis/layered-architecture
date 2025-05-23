@@ -20,8 +20,6 @@ install-mermaid-cli: ## Install mermaid-cli
 create-presentation: install-marp generate-diagrams ## Generate presentation PDF
 	marp docs/presentation.md --pdf --allow-local-files
 
-.PHONY: $(shell grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | cut -d ':' -f 1)
-
 run: install-uv sync up ## Run the FastAPI application
 	PYTHONDONTWRITEBYTECODE=1 uv run uvicorn src.layered_architecture.main:app --reload --host 0.0.0.0 --port 8000
 
@@ -49,8 +47,8 @@ sync: install-uv ## Sync the project
 dbshell: ## Open PSQL shell
 	docker compose exec postgres psql -U postgres -d layered_arch
 
-test: install-uv sync up ## Run tests with coverage
-	PYTHONPATH=src uv run pytest src/layered_architecture/tests --cov=layered_architecture --cov-report=term --cov-report=html --cov-report=xml --cov-report=json ${args}
+test: ## Run tests
+	PYTHONPATH=src uv run pytest tests --cov=layered_architecture --cov-report=term --cov-report=html --cov-report=xml --cov-report=json ${args}
 
 generate-diagrams: install-mermaid-cli ## Generate diagrams
 	@echo "Generating diagrams..."
@@ -65,3 +63,5 @@ clean-pyc: ## Remove Python cache files
 	find . -type f -name "*.pyc" -delete
 	find . -type f -name "*.pyo" -delete
 	find . -type f -name "*.pyd" -delete
+
+.PHONY: $(shell grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | cut -d ':' -f 1)
