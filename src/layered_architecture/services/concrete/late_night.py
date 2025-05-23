@@ -271,6 +271,8 @@ class LateNightOrderService(OrderServiceInterface):
                 raise ValueError(
                     f"Cannot cancel order in status {order.status}"
                 )
+            if order.service_type != ServiceType.LATE_NIGHT:
+                raise ValueError("Cannot cancel non-late-night order")
 
             notes = f"Cancelled: {reason}" if reason else order.notes
 

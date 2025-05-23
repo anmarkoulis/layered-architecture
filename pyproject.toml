@@ -49,6 +49,7 @@ build-backend = "hatchling.build"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py", "tests.py", "conftest.py"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/layered_architecture"]
@@ -119,12 +120,14 @@ pyflakes = ["-F401"] # Unused imports in __init__.py
 max-line-length = 79
 
 [tool.coverage.run]
+source = ["src/layered_architecture"]
 omit = ["*tests*", "*developer_tools*", "*alembic*"]
 concurrency = ["greenlet", "thread"]
-include = ["/app/src/*"]
 
 [tool.coverage.report]
 precision = 2
+fail_under = 80
+show_missing = true
 
 [tool.pylint.master]
 persistent = "no"
