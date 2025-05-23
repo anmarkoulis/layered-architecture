@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.services.interfaces.auth import AuthServiceInterface
 
@@ -13,7 +15,7 @@ class FakeAuthService(AuthServiceInterface):
         :rtype: UserReadDTO
         """
         return UserReadDTO(
-            id="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            id=UUID("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
             username="testuser",
             first_name="Test",
             last_name="User",

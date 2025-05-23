@@ -142,7 +142,16 @@ class DineInOrderService(OrderServiceInterface):
             if not order:
                 raise ValueError(f"Order {order_id} not found")
             if order.customer_id != user.id:
-                raise ValueError("Unauthorized to check this order")
+                logger.error(
+                    f"User {user.id} is not the customer of order {order.customer_id}"
+                )
+                logger.error(
+                    f"type of order.customer_id: {type(order.customer_id)}"
+                )
+                logger.error(f"type of user.id: {type(user.id)}")
+                raise ValueError(
+                    f"Unauthorized to check this order. User {user.id} is not the customer of order {order.customer_id}"
+                )
 
             return order
 

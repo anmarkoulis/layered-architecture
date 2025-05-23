@@ -15,7 +15,7 @@ class Order(Base, UUIDMixin, CreatedAtMixin, UpdatedAtMixin):
     service_type: Mapped[ServiceType] = mapped_column(
         SQLEnum(ServiceType), nullable=False
     )
-    customer_id: Mapped[str] = mapped_column(
+    customer_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), nullable=False
     )
     status: Mapped[OrderStatus] = mapped_column(

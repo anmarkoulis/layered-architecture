@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -118,66 +118,76 @@ class SQLOrderDAO(OrderDAOInterface):
             updated_at=order.updated_at,
         )
 
-    async def get_by_id(self, order_id: str) -> Optional[OrderDTO]:
+    async def get_by_id(
+        self,
+        order_id: str,
+        get_customer_email: Callable[[str], str] | None = None,
+    ) -> Optional[OrderDTO]:
         """Get an order by its ID.
 
         :param order_id: The ID of the order to retrieve
         :type order_id: str
+        :param get_customer_email: Optional function to get customer email by ID
+        :type get_customer_email: Callable[[str], str] | None
         :return: The order if found, None otherwise
         :rtype: Optional[OrderDTO]
         """
-        result = await self.session.execute(
+        # First get the order
+        order_result = await self.session.execute(
             select(Order).where(Order.id == order_id)
         )
-        order = result.scalar_one_or_none()
+        order = order_result.scalar_one_or_none()
         if not order:
             return None
 
-        # Get items
+        # Then get all items in a single query
+        items_result = await self.session.execute(
+            select(OrderPizza, Pizza, OrderBeer, Beer)
+            .outerjoin(Pizza, OrderPizza.pizza_id == Pizza.id)
+            .outerjoin(OrderBeer, OrderPizza.order_id == OrderBeer.order_id)
+            .outerjoin(Beer, OrderBeer.beer_id == Beer.id)
+            .where(OrderPizza.order_id == order_id)
+        )
+
         items: List[OrderItemDTO] = []
+        for row in items_result:
+            order_pizza, pizza, order_beer, beer = row
 
-        # Get pizzas
-        pizza_result = await self.session.execute(
-            select(OrderPizza).where(OrderPizza.order_id == order_id)
-        )
-        for pizza_row in pizza_result:
-            pizza = await self.session.get(Pizza, pizza_row.pizza_id)
-            if pizza is None:
-                continue
-            items.append(
-                OrderItemDTO(
-                    product_id=str(pizza.id),
-                    quantity=pizza_row.quantity,
-                    price=pizza.price,
-                    type="pizza",
+            # Add pizza if present
+            if pizza is not None:
+                items.append(
+                    OrderItemDTO(
+                        product_id=pizza.id,
+                        quantity=order_pizza.quantity,
+                        price=pizza.price,
+                        type="pizza",
+                    )
                 )
-            )
 
-        # Get beers
-        beer_result = await self.session.execute(
-            select(OrderBeer).where(OrderBeer.order_id == order_id)
-        )
-        for beer_row in beer_result:
-            beer = await self.session.get(Beer, beer_row.beer_id)
-            if beer is None:
-                continue
-            items.append(
-                OrderItemDTO(
-                    product_id=str(beer.id),
-                    quantity=beer_row.quantity,
-                    price=beer.price,
-                    type="beer",
+            # Add beer if present
+            if beer is not None:
+                items.append(
+                    OrderItemDTO(
+                        product_id=beer.id,
+                        quantity=order_beer.quantity,
+                        price=beer.price,
+                        type="beer",
+                    )
                 )
-            )
+
+        # Get customer email if function is provided
+        customer_email = ""
+        if get_customer_email:
+            customer_email = get_customer_email(str(order.customer_id))
 
         return OrderDTO(
-            id=str(order.id),
+            id=order.id,
             service_type=order.service_type,
             customer_id=order.customer_id,
             status=order.status,
             items=items,
             total=order.total,
-            customer_email=None,  # This will be None since it's not in the model
+            customer_email=customer_email,
             notes=order.notes,
             created_at=order.created_at,
             updated_at=order.updated_at,
