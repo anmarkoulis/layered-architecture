@@ -12,6 +12,7 @@ from layered_architecture.dto.order import (
     OrderCreateInternalDTO,
     OrderDTO,
     OrderInputDTO,
+    OrderItemDTO,
     OrderUpdateDTO,
     OrderUpdateInternalDTO,
 )
@@ -24,10 +25,8 @@ from layered_architecture.services.interfaces.order import (
 logger = getLogger(__name__)
 
 
-class DeliveryOrderService(OrderServiceInterface):
-    """Service for handling delivery orders with delivery fee."""
-
-    DELIVERY_FEE = Decimal("5.00")  # $5 delivery fee
+class DineInOrderService(OrderServiceInterface):
+    """Service for handling dine-in orders with standard pricing."""
 
     def __init__(
         self,
@@ -46,7 +45,7 @@ class DeliveryOrderService(OrderServiceInterface):
         order_input: OrderInputDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
-        """Create a new delivery order.
+        """Create a new dine-in order.
 
         :param order_input: The order input data
         :type order_input: OrderInputDTO
@@ -55,12 +54,14 @@ class DeliveryOrderService(OrderServiceInterface):
         :return: The created order
         :rtype: OrderDTO
         """
-        if order_input.service_type != ServiceType.DELIVERY:
-            raise ValueError("Invalid service type for delivery service")
+        if order_input.service_type != ServiceType.DINE_IN:
+            raise ValueError("Invalid service type for dine-in service")
 
         async with self.uow:
-            # Calculate subtotal
+            # Calculate subtotal and prepare items for response
             subtotal = Decimal("0")
+            response_items: list[OrderItemDTO] = []
+
             for item in order_input.items:
                 if item.type == "pizza":
                     pizza = await self.pizza_dao.get_by_name(item.product_name)
@@ -69,41 +70,66 @@ class DeliveryOrderService(OrderServiceInterface):
                             f"Pizza {item.product_name} not found"
                         )
                     subtotal += pizza.price * item.quantity
+                    response_items.append(
+                        OrderItemDTO(
+                            product_id=pizza.id,
+                            quantity=item.quantity,
+                            price=pizza.price,
+                            type="pizza",
+                        )
+                    )
                 elif item.type == "beer":
                     beer = await self.beer_dao.get_by_name(item.product_name)
                     if not beer:
                         raise ValueError(f"Beer {item.product_name} not found")
                     subtotal += beer.price * item.quantity
+                    response_items.append(
+                        OrderItemDTO(
+                            product_id=beer.id,
+                            quantity=item.quantity,
+                            price=beer.price,
+                            type="beer",
+                        )
+                    )
                 else:
                     raise ValueError(
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Add delivery fee
-            total = subtotal + self.DELIVERY_FEE
-
+            # Create order with standard pricing (no surcharges or discounts)
             order_create_dto = OrderCreateInternalDTO(
-                service_type=ServiceType.DELIVERY,
-                items=order_input.items,
+                service_type=ServiceType.DINE_IN,
+                items=order_input.items,  # Keep original items for DAO
                 notes=order_input.notes,
                 customer_id=user.id,
                 subtotal=subtotal,
-                total=total,
+                total=subtotal,  # No surcharges or discounts
                 customer_email=user.email,
             )
 
+            # Create order in database
             created_order = await self.order_dao.create(order_create_dto)
-            logger.info(
-                f"Created delivery order {created_order.id} for user {user.id} with ${self.DELIVERY_FEE} delivery fee"
+
+            # Return order with proper item DTOs
+            return OrderDTO(
+                id=created_order.id,
+                service_type=created_order.service_type,
+                customer_id=created_order.customer_id,
+                status=created_order.status,
+                items=response_items,  # Use items with product_id and price
+                total=created_order.total,
+                customer_email=created_order.customer_email,
+                notes=created_order.notes,
+                created_at=created_order.created_at,
+                updated_at=created_order.updated_at,
             )
-            return created_order
 
     async def check_status(
         self,
         order_id: UUID,
         user: UserReadDTO,
     ) -> OrderDTO:
-        """Check the status of a delivery order.
+        """Check the status of a dine-in order.
 
         :param order_id: The ID of the order to check
         :type order_id: UUID
@@ -117,7 +143,16 @@ class DeliveryOrderService(OrderServiceInterface):
             if not order:
                 raise ValueError(f"Order {order_id} not found")
             if order.customer_id != user.id:
-                raise ValueError("Unauthorized to check this order")
+                logger.error(
+                    f"User {user.id} is not the customer of order {order.customer_id}"
+                )
+                logger.error(
+                    f"type of order.customer_id: {type(order.customer_id)}"
+                )
+                logger.error(f"type of user.id: {type(user.id)}")
+                raise ValueError(
+                    f"Unauthorized to check this order. User {user.id} is not the customer of order {order.customer_id}"
+                )
 
             return order
 
@@ -127,7 +162,7 @@ class DeliveryOrderService(OrderServiceInterface):
         order_input: OrderUpdateDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
-        """Update a delivery order.
+        """Update a dine-in order.
 
         :param order_id: The ID of the order to update
         :type order_id: UUID
@@ -148,8 +183,8 @@ class DeliveryOrderService(OrderServiceInterface):
                 raise ValueError(
                     f"Cannot update order in status {order.status}"
                 )
-            if order_input.service_type != ServiceType.DELIVERY:
-                raise ValueError("Cannot change service type to non-delivery")
+            if order_input.service_type != ServiceType.DINE_IN:
+                raise ValueError("Cannot change service type to non-dine-in")
 
             # Calculate new subtotal
             subtotal = Decimal("0")
@@ -171,11 +206,11 @@ class DeliveryOrderService(OrderServiceInterface):
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Add delivery fee
-            total = subtotal + self.DELIVERY_FEE
+            # No surcharges or discounts for dine-in
+            total = subtotal
 
             update_dto = OrderUpdateInternalDTO(
-                service_type=ServiceType.DELIVERY,
+                service_type=ServiceType.DINE_IN,
                 items=order_input.items,
                 notes=order_input.notes,
                 status=order_input.status,
@@ -188,7 +223,7 @@ class DeliveryOrderService(OrderServiceInterface):
             updated_order = await self.order_dao.update(
                 str(order_id), update_dto
             )
-            logger.info(f"Updated delivery order {order_id} by user {user.id}")
+            logger.info(f"Updated dine-in order {order_id} by user {user.id}")
             return updated_order
 
     async def cancel_order(
@@ -197,7 +232,7 @@ class DeliveryOrderService(OrderServiceInterface):
         user: UserReadDTO,
         reason: str | None = None,
     ) -> OrderDTO:
-        """Cancel a delivery order.
+        """Cancel a dine-in order.
 
         :param order_id: The ID of the order to cancel
         :type order_id: UUID
@@ -222,7 +257,7 @@ class DeliveryOrderService(OrderServiceInterface):
             notes = f"Cancelled: {reason}" if reason else order.notes
 
             update_dto = OrderUpdateInternalDTO(
-                service_type=ServiceType.DELIVERY,
+                service_type=ServiceType.DINE_IN,
                 items=order.items,
                 notes=notes,
                 status=OrderStatus.CANCELLED,
@@ -236,6 +271,6 @@ class DeliveryOrderService(OrderServiceInterface):
                 str(order_id), update_dto
             )
             logger.info(
-                f"Cancelled delivery order {order_id} by user {user.id}"
+                f"Cancelled dine-in order {order_id} by user {user.id}"
             )
             return cancelled_order

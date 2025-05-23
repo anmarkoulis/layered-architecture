@@ -1,25 +1,45 @@
 from datetime import datetime, time
 from decimal import Decimal
+from logging import getLogger
+from uuid import UUID
 
-from layered_architecture.dao.interfaces import BeerDAO, OrderDAO, PizzaDAO
-from layered_architecture.db.uow.sqla import SQLAUnitOfWork
-from layered_architecture.dto.order import OrderDTO, OrderInputDTO
-from layered_architecture.services.interfaces.order import OrderService
+from layered_architecture.dao.interfaces import (
+    BeerDAOInterface,
+    OrderDAOInterface,
+    PizzaDAOInterface,
+)
+from layered_architecture.db.uow.base import BaseUnitOfWork
+from layered_architecture.dto.order import (
+    OrderCreateInternalDTO,
+    OrderDTO,
+    OrderInputDTO,
+    OrderUpdateDTO,
+    OrderUpdateInternalDTO,
+)
+from layered_architecture.dto.user import UserReadDTO
+from layered_architecture.enums import OrderStatus, ServiceType
+from layered_architecture.services.interfaces.order import (
+    OrderServiceInterface,
+)
+
+logger = getLogger(__name__)
 
 
-class LateNightOrderService(OrderService):
-    """Service for handling late night orders with special pricing and rules."""
+class LateNightOrderService(OrderServiceInterface):
+    """Service for handling late night orders with 20% surcharge."""
 
+    LATE_NIGHT_SURCHARGE = Decimal(
+        "0.20"
+    )  # 20% surcharge for late night orders
     LATE_NIGHT_START = time(22, 0)  # 10 PM
     LATE_NIGHT_END = time(4, 0)  # 4 AM
-    LATE_NIGHT_SURCHARGE = Decimal("1.20")  # 20% surcharge
 
     def __init__(
         self,
-        pizza_dao: PizzaDAO,
-        beer_dao: BeerDAO,
-        order_dao: OrderDAO,
-        uow: SQLAUnitOfWork,
+        pizza_dao: PizzaDAOInterface,
+        beer_dao: BeerDAOInterface,
+        order_dao: OrderDAOInterface,
+        uow: BaseUnitOfWork,
     ):
         self.pizza_dao = pizza_dao
         self.beer_dao = beer_dao
@@ -27,44 +47,228 @@ class LateNightOrderService(OrderService):
         self.uow = uow
 
     def _is_late_night(self) -> bool:
-        """Check if current time is within late night hours."""
-        current_time = datetime.now().time()
-        if (
-            self.LATE_NIGHT_START <= current_time
-            or current_time <= self.LATE_NIGHT_END
-        ):
-            return True
-        return False
+        """Check if the current time is within late night hours.
 
-    async def create_order(self, order_input: OrderInputDTO) -> OrderDTO:
-        """Create a late night order with special pricing."""
+        :return: True if current time is between 10 PM and 4 AM
+        :rtype: bool
+        """
+        current_time = datetime.now().time()
+        return (
+            self.LATE_NIGHT_START <= current_time
+            or current_time < self.LATE_NIGHT_END
+        )
+
+    async def create_order(
+        self,
+        order_input: OrderInputDTO,
+        user: UserReadDTO,
+    ) -> OrderDTO:
+        """Create a new late night order.
+
+        :param order_input: The order input data
+        :type order_input: OrderInputDTO
+        :param user: The user creating the order
+        :type user: UserReadDTO
+        :return: The created order
+        :rtype: OrderDTO
+        """
+        if order_input.service_type != ServiceType.LATE_NIGHT:
+            raise ValueError("Invalid service type for late night service")
+
         if not self._is_late_night():
             raise ValueError(
-                "Late night orders are only accepted between 10 PM and 4 AM"
+                "Late night orders are only available between 10 PM and 4 AM"
             )
 
         async with self.uow:
-            # Calculate total with late night surcharge
-            total = Decimal("0")
+            # Calculate subtotal
+            subtotal = Decimal("0")
             for item in order_input.items:
                 if item.type == "pizza":
-                    pizza = await self.pizza_dao.get_by_id(item.id)
-                    total += (
-                        pizza.price * item.quantity * self.LATE_NIGHT_SURCHARGE
-                    )
+                    pizza = await self.pizza_dao.get_by_name(item.product_name)
+                    if not pizza:
+                        raise ValueError(
+                            f"Pizza {item.product_name} not found"
+                        )
+                    subtotal += pizza.price * item.quantity
                 elif item.type == "beer":
-                    beer = await self.beer_dao.get_by_id(item.id)
-                    total += (
-                        beer.price * item.quantity * self.LATE_NIGHT_SURCHARGE
+                    beer = await self.beer_dao.get_by_name(item.product_name)
+                    if not beer:
+                        raise ValueError(f"Beer {item.product_name} not found")
+                    subtotal += beer.price * item.quantity
+                else:
+                    raise ValueError(
+                        f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Create order with surcharge
-            order = await self.order_dao.create(
-                store_type=order_input.store_type,
-                customer_id=order_input.customer_id,
-                total=total,
+            # Apply late night surcharge
+            surcharge = subtotal * self.LATE_NIGHT_SURCHARGE
+            total = subtotal + surcharge
+
+            order_create_dto = OrderCreateInternalDTO(
+                service_type=ServiceType.LATE_NIGHT,
                 items=order_input.items,
+                notes=order_input.notes,
+                customer_id=user.id,
+                subtotal=subtotal,
+                total=total,
+                customer_email=user.email,
             )
 
-            await self.uow.commit()
-            return OrderDTO.model_validate(order)
+            created_order = await self.order_dao.create(order_create_dto)
+            logger.info(
+                f"Created late night order {created_order.id} for user {user.id} with {self.LATE_NIGHT_SURCHARGE*100}% surcharge"
+            )
+            return created_order
+
+    async def check_status(
+        self,
+        order_id: UUID,
+        user: UserReadDTO,
+    ) -> OrderDTO:
+        """Check the status of a late night order.
+
+        :param order_id: The ID of the order to check
+        :type order_id: UUID
+        :param user: The user checking the order
+        :type user: UserReadDTO
+        :return: The order with its current status
+        :rtype: OrderDTO
+        """
+        async with self.uow:
+            order = await self.order_dao.get_by_id(str(order_id))
+            if not order:
+                raise ValueError(f"Order {order_id} not found")
+            if order.customer_id != user.id:
+                raise ValueError("Unauthorized to check this order")
+
+            return order
+
+    async def update_order(
+        self,
+        order_id: UUID,
+        order_input: OrderInputDTO,
+        user: UserReadDTO,
+    ) -> OrderDTO:
+        """Update a late night order.
+
+        :param order_id: The ID of the order to update
+        :type order_id: UUID
+        :param order_input: The updated order data
+        :type order_input: OrderInputDTO
+        :param user: The user updating the order
+        :type user: UserReadDTO
+        :return: The updated order
+        :rtype: OrderDTO
+        """
+        if not self._is_late_night():
+            raise ValueError(
+                "Late night orders can only be updated between 10 PM and 4 AM"
+            )
+
+        async with self.uow:
+            order = await self.order_dao.get_by_id(str(order_id))
+            if not order:
+                raise ValueError(f"Order {order_id} not found")
+            if order.customer_id != user.id:
+                raise ValueError("Unauthorized to update this order")
+            if order.status in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
+                raise ValueError(
+                    f"Cannot update order in status {order.status}"
+                )
+            if order_input.service_type != ServiceType.LATE_NIGHT:
+                raise ValueError(
+                    "Cannot change service type to non-late-night"
+                )
+
+            # Calculate new subtotal
+            subtotal = Decimal("0")
+            for item in order_input.items:
+                if item.type == "pizza":
+                    pizza = await self.pizza_dao.get_by_name(item.product_name)
+                    if not pizza:
+                        raise ValueError(
+                            f"Pizza {item.product_name} not found"
+                        )
+                    subtotal += pizza.price * item.quantity
+                elif item.type == "beer":
+                    beer = await self.beer_dao.get_by_name(item.product_name)
+                    if not beer:
+                        raise ValueError(f"Beer {item.product_name} not found")
+                    subtotal += beer.price * item.quantity
+                else:
+                    raise ValueError(
+                        f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
+                    )
+
+            # Apply late night surcharge
+            surcharge = subtotal * self.LATE_NIGHT_SURCHARGE
+            total = subtotal + surcharge
+
+            update_dto = OrderUpdateDTO(
+                service_type=ServiceType.LATE_NIGHT,
+                items=order_input.items,
+                notes=order_input.notes,
+                status=order.status,
+                customer_id=user.id,
+                subtotal=subtotal,
+                total=total,
+                customer_email=user.email,
+            )
+
+            updated_order = await self.order_dao.update(
+                str(order_id), update_dto
+            )
+            logger.info(
+                f"Updated late night order {order_id} by user {user.id}"
+            )
+            return updated_order
+
+    async def cancel_order(
+        self,
+        order_id: UUID,
+        user: UserReadDTO,
+        reason: str | None = None,
+    ) -> OrderDTO:
+        """Cancel a late night order.
+
+        :param order_id: The ID of the order to cancel
+        :type order_id: UUID
+        :param user: The user cancelling the order
+        :type user: UserReadDTO
+        :param reason: Optional reason for cancellation
+        :type reason: str | None
+        :return: The cancelled order
+        :rtype: OrderDTO
+        """
+        async with self.uow:
+            order = await self.order_dao.get_by_id(str(order_id))
+            if not order:
+                raise ValueError(f"Order {order_id} not found")
+            if order.customer_id != user.id:
+                raise ValueError("Unauthorized to cancel this order")
+            if order.status in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
+                raise ValueError(
+                    f"Cannot cancel order in status {order.status}"
+                )
+
+            notes = f"Cancelled: {reason}" if reason else order.notes
+
+            update_dto = OrderUpdateInternalDTO(
+                service_type=ServiceType.LATE_NIGHT,
+                items=order.items,
+                notes=notes,
+                status=OrderStatus.CANCELLED,
+                customer_id=user.id,
+                subtotal=order.total,
+                total=order.total,
+                customer_email=user.email,
+            )
+
+            cancelled_order = await self.order_dao.update(
+                str(order_id), update_dto
+            )
+            logger.info(
+                f"Cancelled late night order {order_id} by user {user.id}"
+            )
+            return cancelled_order

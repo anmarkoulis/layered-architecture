@@ -1,12 +1,10 @@
-from datetime import datetime
-
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, func
 
 
 class UpdatedAtMixin(object):
     updated_at = Column(
         DateTime(timezone=True),
-        onupdate=datetime.utcnow,
-        nullable=True,
-        default=None,
+        onupdate=func.now(),  # pylint: disable=not-callable
+        nullable=False,
+        server_default=func.now(),  # pylint: disable=not-callable
     )

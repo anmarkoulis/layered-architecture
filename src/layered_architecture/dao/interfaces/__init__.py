@@ -1,3 +1,3 @@
-from .beer import BeerDAO
-from .order import OrderDAO
-from .pizza import PizzaDAO
+from .beer import BeerDAOInterface
+from .order import OrderDAOInterface
+from .pizza import PizzaDAOInterface

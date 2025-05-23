@@ -1,2 +1,2 @@
 from .concrete import SQLBeerDAO, SQLOrderDAO, SQLPizzaDAO
-from .interfaces import BeerDAO, OrderDAO, PizzaDAO
+from .interfaces import BeerDAOInterface, OrderDAOInterface, PizzaDAOInterface

@@ -1,9 +1,21 @@
 from enum import Enum
 
 
-class StoreType(Enum):
-    CORPORATE = "corporate"
+class ServiceType(str, Enum):
+    """Service type enum."""
+
+    DINE_IN = "dine_in"
+    TAKEAWAY = "takeaway"
     DELIVERY = "delivery"
-    DOWNTOWN = "downtown"
     LATE_NIGHT = "late_night"
-    MALL = "mall"
+
+
+class OrderStatus(str, Enum):
+    """Order status enum."""
+
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    PREPARING = "preparing"
+    READY = "ready"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
