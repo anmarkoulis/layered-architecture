@@ -15,7 +15,7 @@ from layered_architecture.dto import (
     OrderCreateInternalDTO,
     OrderDTO,
     OrderItemDTO,
-    OrderUpdateDTO,
+    OrderUpdateInternalDTO,
 )
 
 
@@ -259,14 +259,14 @@ class SQLOrderDAO(OrderDAOInterface):
         return order_dtos
 
     async def update(
-        self, order_id: str, update_data: OrderUpdateDTO
+        self, order_id: str, update_data: OrderUpdateInternalDTO
     ) -> OrderDTO:
         """Update an existing order.
 
         :param order_id: The ID of the order to update
         :type order_id: str
         :param update_data: The data to update the order with
-        :type update_data: OrderUpdateDTO
+        :type update_data: OrderUpdateInternalDTO
         :return: The updated order
         :rtype: OrderDTO
         :raises ValueError: If the order is not found
@@ -285,6 +285,8 @@ class SQLOrderDAO(OrderDAOInterface):
             order.notes = update_data.notes
         if update_data.total is not None:
             order.total = update_data.total
+        if update_data.subtotal is not None:
+            order.subtotal = update_data.subtotal
 
         await self.session.flush()
 

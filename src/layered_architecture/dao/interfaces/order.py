@@ -4,7 +4,7 @@ from typing import List, Optional
 from layered_architecture.dto.order import (
     OrderCreateInternalDTO,
     OrderDTO,
-    OrderUpdateDTO,
+    OrderUpdateInternalDTO,
 )
 
 
@@ -44,14 +44,14 @@ class OrderDAOInterface(ABC):
 
     @abstractmethod
     async def update(
-        self, order_id: str, update_data: OrderUpdateDTO
+        self, order_id: str, update_data: OrderUpdateInternalDTO
     ) -> OrderDTO:
         """Update an existing order.
 
         :param order_id: The ID of the order to update
         :type order_id: str
         :param update_data: The data to update the order with
-        :type update_data: OrderUpdateDTO
+        :type update_data: OrderUpdateInternalDTO
         :return: The updated order
         :rtype: OrderDTO
         """

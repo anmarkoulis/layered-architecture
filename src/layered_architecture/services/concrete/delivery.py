@@ -13,6 +13,7 @@ from layered_architecture.dto.order import (
     OrderDTO,
     OrderInputDTO,
     OrderUpdateDTO,
+    OrderUpdateInternalDTO,
 )
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
@@ -123,7 +124,7 @@ class DeliveryOrderService(OrderServiceInterface):
     async def update_order(
         self,
         order_id: UUID,
-        order_input: OrderInputDTO,
+        order_input: OrderUpdateDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
         """Update a delivery order.
@@ -131,7 +132,7 @@ class DeliveryOrderService(OrderServiceInterface):
         :param order_id: The ID of the order to update
         :type order_id: UUID
         :param order_input: The updated order data
-        :type order_input: OrderInputDTO
+        :type order_input: OrderUpdateDTO
         :param user: The user updating the order
         :type user: UserReadDTO
         :return: The updated order
@@ -173,11 +174,11 @@ class DeliveryOrderService(OrderServiceInterface):
             # Add delivery fee
             total = subtotal + self.DELIVERY_FEE
 
-            update_dto = OrderUpdateDTO(
+            update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.DELIVERY,
                 items=order_input.items,
                 notes=order_input.notes,
-                status=order.status,
+                status=order_input.status,
                 customer_id=user.id,
                 subtotal=subtotal,
                 total=total,
@@ -220,7 +221,7 @@ class DeliveryOrderService(OrderServiceInterface):
 
             notes = f"Cancelled: {reason}" if reason else order.notes
 
-            update_dto = OrderUpdateDTO(
+            update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.DELIVERY,
                 items=order.items,
                 notes=notes,

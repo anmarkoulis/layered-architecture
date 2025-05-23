@@ -6,5 +6,6 @@ from .order import (
     OrderInputDTO,
     OrderItemDTO,
     OrderUpdateDTO,
+    OrderUpdateInternalDTO,
 )
 from .user import UserReadDTO

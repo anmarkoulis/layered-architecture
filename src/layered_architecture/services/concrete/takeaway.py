@@ -13,6 +13,7 @@ from layered_architecture.dto.order import (
     OrderDTO,
     OrderInputDTO,
     OrderUpdateDTO,
+    OrderUpdateInternalDTO,
 )
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
@@ -119,7 +120,7 @@ class TakeawayOrderService(OrderServiceInterface):
     async def update_order(
         self,
         order_id: UUID,
-        order_input: OrderInputDTO,
+        order_input: OrderUpdateDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
         """Update a takeaway order.
@@ -127,7 +128,7 @@ class TakeawayOrderService(OrderServiceInterface):
         :param order_id: The ID of the order to update
         :type order_id: UUID
         :param order_input: The updated order data
-        :type order_input: OrderInputDTO
+        :type order_input: OrderUpdateDTO
         :param user: The user updating the order
         :type user: UserReadDTO
         :return: The updated order
@@ -166,14 +167,17 @@ class TakeawayOrderService(OrderServiceInterface):
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            update_dto = OrderUpdateDTO(
+            # No surcharges or discounts for takeaway
+            total = subtotal
+
+            update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.TAKEAWAY,
                 items=order_input.items,
                 notes=order_input.notes,
-                status=order.status,
+                status=order_input.status,
                 customer_id=user.id,
-                subtotal=subtotal,  # Add subtotal
-                total=subtotal,  # No surcharges or discounts
+                subtotal=subtotal,
+                total=total,
                 customer_email=user.email,
             )
 
@@ -213,13 +217,13 @@ class TakeawayOrderService(OrderServiceInterface):
 
             notes = f"Cancelled: {reason}" if reason else order.notes
 
-            update_dto = OrderUpdateDTO(
+            update_dto = OrderUpdateInternalDTO(
                 service_type=ServiceType.TAKEAWAY,
                 items=order.items,
                 notes=notes,
                 status=OrderStatus.CANCELLED,
                 customer_id=user.id,
-                subtotal=order.subtotal,  # Keep existing subtotal
+                subtotal=order.subtotal,
                 total=order.total,
                 customer_email=user.email,
             )

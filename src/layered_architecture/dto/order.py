@@ -41,7 +41,16 @@ class OrderCreateInternalDTO(ModelConfigBaseModel):
 
 
 class OrderUpdateDTO(ModelConfigBaseModel):
-    """DTO for order updates."""
+    """DTO for order updates from API."""
+
+    service_type: ServiceType
+    items: list[OrderItemInputDTO]
+    notes: str | None = None
+    status: OrderStatus
+
+
+class OrderUpdateInternalDTO(ModelConfigBaseModel):
+    """Internal DTO for order updates with customer details."""
 
     service_type: ServiceType
     items: list[OrderItemInputDTO]
