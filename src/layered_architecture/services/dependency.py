@@ -3,64 +3,61 @@ from logging import getLogger
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from layered_architecture.dao.concrete.sqla_beer import SQLBeerDAO
-from layered_architecture.dao.concrete.sqla_order import SQLOrderDAO
-from layered_architecture.dao.concrete.sqla_pizza import SQLPizzaDAO
 from layered_architecture.db.depends import get_db
-from layered_architecture.db.uow import SQLAUnitOfWork
-from layered_architecture.enums import StoreType
-from layered_architecture.services.concrete.corporate import (
-    CorporateOrderService,
+from layered_architecture.db.models.order import ServiceType
+from layered_architecture.factories.order import OrderServiceFactory
+from layered_architecture.services.concrete.fake_auth import FakeAuthService
+from layered_architecture.services.interfaces.auth import AuthServiceInterface
+from layered_architecture.services.interfaces.order import (
+    OrderServiceInterface,
 )
-from layered_architecture.services.concrete.delivery import (
-    DeliveryOrderService,
-)
-from layered_architecture.services.concrete.downtown import (
-    DowntownOrderService,
-)
-from layered_architecture.services.concrete.late_night import (
-    LateNightOrderService,
-)
-from layered_architecture.services.concrete.mall import MallOrderService
-from layered_architecture.services.interfaces.order import OrderService
 
 logger = getLogger(__name__)
 
 
 class DependencyService:
+    """Service for managing dependencies and service creation."""
+
     @staticmethod
-    def get_order_service(
-        store_type: StoreType,
+    async def get_order_service(
+        service_type: ServiceType,
         db: AsyncSession = Depends(get_db),
-    ) -> OrderService:
-        """Get an order service for the specified store.
+    ) -> OrderServiceInterface:
+        """Get an order service for the specified service type.
 
-        Args:
-            store_type: The type of the store to get the service for
-            db: The database session to use
-
-        Returns:
-            An order service instance
-
-        Raises:
-            ValueError: If the store type is not supported
+        :param service_type: The type of service to get
+        :type service_type: ServiceType
+        :param db: The database session to use
+        :type db: AsyncSession
+        :return: An order service instance
+        :rtype: OrderServiceInterface
         """
-        uow = SQLAUnitOfWork(db)
-        pizza_dao = SQLPizzaDAO(db)
-        beer_dao = SQLBeerDAO(db)
-        order_dao = SQLOrderDAO(db)
-        logger.info(f"store_type: {store_type}")
-        logger.info(f"type(store_type): {type(store_type)}")
+        factory = OrderServiceFactory(db)
+        return factory.get_service_by_service_type(service_type)
 
-        if store_type == StoreType.DOWNTOWN:
-            return DowntownOrderService(pizza_dao, beer_dao, order_dao, uow)
-        elif store_type == StoreType.MALL:
-            return MallOrderService(pizza_dao, beer_dao, order_dao, uow)
-        elif store_type == StoreType.LATE_NIGHT:
-            return LateNightOrderService(pizza_dao, beer_dao, order_dao, uow)
-        elif store_type == StoreType.CORPORATE:
-            return CorporateOrderService(pizza_dao, beer_dao, order_dao, uow)
-        elif store_type == StoreType.DELIVERY:
-            return DeliveryOrderService(pizza_dao, beer_dao, order_dao, uow)
-        else:
-            raise ValueError(f"Unsupported store type: {store_type}")
+    @staticmethod
+    async def get_order_service_by_id(
+        order_id: str,
+        db: AsyncSession = Depends(get_db),
+    ) -> OrderServiceInterface:
+        """Get an order service based on the order ID.
+
+        :param order_id: The ID of the order to get the service for
+        :type order_id: str
+        :param db: The database session to use
+        :type db: AsyncSession
+        :return: An order service instance
+        :rtype: OrderServiceInterface
+        :raises ValueError: If the order is not found
+        """
+        factory = OrderServiceFactory(db)
+        return await factory.get_service_by_order_id(order_id)
+
+    @staticmethod
+    async def get_auth_service() -> AuthServiceInterface:
+        """Get the authentication service.
+
+        :return: An authentication service instance
+        :rtype: AuthServiceInterface
+        """
+        return FakeAuthService()

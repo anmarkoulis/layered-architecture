@@ -1,35 +1,26 @@
 from decimal import Decimal
-from typing import Optional
 
-from sqlalchemy import Numeric, String
+from sqlalchemy import Enum as SQLEnum, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
-from layered_architecture.db.models.mixins import (
-    CreatedAtMixin,
-    UpdatedAtMixin,
-    UUIDMixin,
-)
-from layered_architecture.enums import StoreType
+from .mixins import CreatedAtMixin, UpdatedAtMixin, UUIDMixin
+from layered_architecture.enums import OrderStatus, ServiceType
 
 
-class Order(Base, CreatedAtMixin, UpdatedAtMixin, UUIDMixin):
-    """Order model representing a customer order in the system."""
+class Order(Base, UUIDMixin, CreatedAtMixin, UpdatedAtMixin):
+    """Order model."""
 
-    store_type: Mapped[StoreType] = mapped_column(nullable=False)
-    customer_id: Mapped[str] = mapped_column(String, nullable=False)
-    status: Mapped[str] = mapped_column(String, nullable=False)
-    total_amount: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False
+    service_type: Mapped[ServiceType] = mapped_column(
+        SQLEnum(ServiceType), nullable=False
     )
-    customer_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    customer_email: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
+    customer_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True), nullable=False
     )
-    customer_phone: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
+    status: Mapped[OrderStatus] = mapped_column(
+        SQLEnum(OrderStatus), nullable=False, default=OrderStatus.PENDING
     )
-    delivery_address: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )
-    notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    notes: Mapped[str] = mapped_column(String, nullable=True)

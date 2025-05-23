@@ -1,65 +1,131 @@
-from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from layered_architecture.dao.interfaces.order import OrderDAO
-from layered_architecture.db.models.beer import Beer
-from layered_architecture.db.models.order import Order
-from layered_architecture.db.models.order_beer import OrderBeer
-from layered_architecture.db.models.order_pizza import OrderPizza
-from layered_architecture.db.models.pizza import Pizza
-from layered_architecture.dto.order import (
+from layered_architecture.dao.interfaces import OrderDAOInterface
+from layered_architecture.db.models import (
+    Beer,
+    Order,
+    OrderBeer,
+    OrderPizza,
+    Pizza,
+)
+from layered_architecture.dto import (
+    OrderCreateInternalDTO,
     OrderDTO,
-    OrderInputDTO,
     OrderItemDTO,
+    OrderUpdateDTO,
 )
 
 
-class SQLOrderDAO(OrderDAO):
+class SQLOrderDAO(OrderDAOInterface):
+    """SQLAlchemy implementation of the OrderDAO interface."""
+
     def __init__(self, session: AsyncSession):
+        """Initialize the DAO with a database session.
+
+        :param session: The SQLAlchemy async session to use
+        :type session: AsyncSession
+        """
         self.session = session
 
-    async def create(self, order_input: OrderInputDTO) -> OrderDTO:
+    async def create(self, order_input: OrderCreateInternalDTO) -> OrderDTO:
+        """Create a new order.
+
+        :param order_input: The order input data with customer details
+        :type order_input: OrderCreateInternalDTO
+        :return: The created order
+        :rtype: OrderDTO
+        """
         # Create order
         order = Order(
-            store_type=order_input.store_type,
+            service_type=order_input.service_type,
             customer_id=order_input.customer_id,
             status="pending",
-            total_amount=str(order_input.total),
+            subtotal=order_input.subtotal,
+            total=order_input.total,
+            notes=order_input.notes,
         )
 
-        # Add items to order
+        # Add order first and flush to get the ID
+        self.session.add(order)
+        await self.session.flush()
+
+        # Now add items to order and collect OrderItemDTOs
+        items: List[OrderItemDTO] = []
         for item in order_input.items:
             if item.type == "pizza":
+                # Look up pizza by name
+                pizza_result = await self.session.execute(
+                    select(Pizza).where(Pizza.name == item.product_name)
+                )
+                pizza = pizza_result.scalar_one_or_none()
+                if not pizza:
+                    raise ValueError(f"Pizza {item.product_name} not found")
+
                 order_pizza = OrderPizza(
                     order_id=order.id,
-                    pizza_id=item.product_id,
+                    pizza_id=pizza.id,
                     quantity=item.quantity,
                 )
                 self.session.add(order_pizza)
+                items.append(
+                    OrderItemDTO(
+                        product_id=pizza.id,
+                        quantity=item.quantity,
+                        price=pizza.price,
+                        type="pizza",
+                    )
+                )
             elif item.type == "beer":
+                # Look up beer by name
+                beer_result = await self.session.execute(
+                    select(Beer).where(Beer.name == item.product_name)
+                )
+                beer = beer_result.scalar_one_or_none()
+                if not beer:
+                    raise ValueError(f"Beer {item.product_name} not found")
+
                 order_beer = OrderBeer(
                     order_id=order.id,
-                    beer_id=item.product_id,
+                    beer_id=beer.id,
                     quantity=item.quantity,
                 )
                 self.session.add(order_beer)
+                items.append(
+                    OrderItemDTO(
+                        product_id=beer.id,
+                        quantity=item.quantity,
+                        price=beer.price,
+                        type="beer",
+                    )
+                )
 
-        self.session.add(order)
-        await self.session.commit()
-        await self.session.refresh(order)
+        # Flush the order items
+        await self.session.flush()
 
         return OrderDTO(
-            id=str(order.id),
-            store_type=order.store_type,
+            id=order.id,
+            service_type=order.service_type,
             customer_id=order_input.customer_id,
-            items=order_input.items,
+            status=order.status,
+            items=items,  # Use converted items
             total=order_input.total,
+            customer_email=order_input.customer_email,
+            notes=order_input.notes,
+            created_at=order.created_at,
+            updated_at=order.updated_at,
         )
 
     async def get_by_id(self, order_id: str) -> Optional[OrderDTO]:
+        """Get an order by its ID.
+
+        :param order_id: The ID of the order to retrieve
+        :type order_id: str
+        :return: The order if found, None otherwise
+        :rtype: Optional[OrderDTO]
+        """
         result = await self.session.execute(
             select(Order).where(Order.id == order_id)
         )
@@ -83,6 +149,7 @@ class SQLOrderDAO(OrderDAO):
                     product_id=str(pizza.id),
                     quantity=pizza_row.quantity,
                     price=pizza.price,
+                    type="pizza",
                 )
             )
 
@@ -99,18 +166,29 @@ class SQLOrderDAO(OrderDAO):
                     product_id=str(beer.id),
                     quantity=beer_row.quantity,
                     price=beer.price,
+                    type="beer",
                 )
             )
 
         return OrderDTO(
             id=str(order.id),
-            store_type=order.store_type,
+            service_type=order.service_type,
             customer_id=order.customer_id,
+            status=order.status,
             items=items,
-            total=Decimal(order.total_amount),
+            total=order.total,
+            customer_email=None,  # This will be None since it's not in the model
+            notes=order.notes,
+            created_at=order.created_at,
+            updated_at=order.updated_at,
         )
 
     async def get_all(self) -> List[OrderDTO]:
+        """Get all orders.
+
+        :return: List of all orders
+        :rtype: List[OrderDTO]
+        """
         result = await self.session.execute(select(Order))
         orders = result.scalars().all()
 
@@ -132,6 +210,7 @@ class SQLOrderDAO(OrderDAO):
                         product_id=str(pizza.id),
                         quantity=pizza_row.quantity,
                         price=pizza.price,
+                        type="pizza",
                     )
                 )
 
@@ -148,17 +227,56 @@ class SQLOrderDAO(OrderDAO):
                         product_id=str(beer.id),
                         quantity=beer_row.quantity,
                         price=beer.price,
+                        type="beer",
                     )
                 )
 
             order_dtos.append(
                 OrderDTO(
                     id=str(order.id),
-                    store_type=order.store_type,
+                    service_type=order.service_type,
                     customer_id=order.customer_id,
+                    status=order.status,
                     items=items,
-                    total=Decimal(order.total_amount),
+                    total=order.total,
+                    customer_email=None,  # This will be None since it's not in the model
+                    notes=order.notes,
+                    created_at=order.created_at,
+                    updated_at=order.updated_at,
                 )
             )
 
         return order_dtos
+
+    async def update(
+        self, order_id: str, update_data: OrderUpdateDTO
+    ) -> OrderDTO:
+        """Update an existing order.
+
+        :param order_id: The ID of the order to update
+        :type order_id: str
+        :param update_data: The data to update the order with
+        :type update_data: OrderUpdateDTO
+        :return: The updated order
+        :rtype: OrderDTO
+        :raises ValueError: If the order is not found
+        """
+        result = await self.session.execute(
+            select(Order).where(Order.id == order_id)
+        )
+        order = result.scalar_one_or_none()
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
+
+        # Update order fields
+        if update_data.status is not None:
+            order.status = update_data.status
+        if update_data.notes is not None:
+            order.notes = update_data.notes
+        if update_data.total is not None:
+            order.total = update_data.total
+
+        await self.session.flush()
+
+        # Get updated order with items
+        return await self.get_by_id(order_id)

@@ -13,4 +13,3 @@ class Pizza(Base, UUIDMixin, CreatedAtMixin, UpdatedAtMixin):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    is_available: Mapped[bool] = mapped_column(default=True)

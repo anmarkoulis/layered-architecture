@@ -1,19 +1,19 @@
 """Services package."""
 
 from .concrete import (
-    CorporateOrderService,
     DeliveryOrderService,
-    DowntownOrderService,
+    DineInOrderService,
+    FakeAuthService,
     LateNightOrderService,
-    MallOrderService,
+    TakeawayOrderService,
 )
-from .interfaces import OrderService
+from .interfaces import AuthServiceInterface, OrderServiceInterface
 
 __all__ = [
-    "OrderService",
-    "DowntownOrderService",
-    "MallOrderService",
-    "LateNightOrderService",
-    "CorporateOrderService",
     "DeliveryOrderService",
+    "DineInOrderService",
+    "LateNightOrderService",
+    "TakeawayOrderService",
+    "AuthServiceInterface",
+    "OrderServiceInterface",
 ]

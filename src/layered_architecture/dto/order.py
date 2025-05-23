@@ -1,45 +1,79 @@
+from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, List
+from typing import List
+from uuid import UUID
 
 from pydantic import Field
 
 from .base import ModelConfigBaseModel
-from layered_architecture.enums import StoreType
+from layered_architecture.enums import OrderStatus, ServiceType
 
 
-class OrderItemDTO(ModelConfigBaseModel):
-    product_id: Annotated[str, Field(description="The ID of the product")]
-    quantity: Annotated[
-        int, Field(description="The quantity of the product", ge=1)
-    ]
-    price: Annotated[Decimal, Field(description="The price of the product")]
-    type: Annotated[
-        str, Field(description="The type of the product (pizza or beer)")
-    ]
+class OrderItemInputDTO(ModelConfigBaseModel):
+    """Input DTO for order items."""
+
+    type: str = Field(..., description="Type of item (pizza or beer)")
+    product_name: str = Field(
+        ...,
+        description="Name of the product (e.g., 'Margherita' for pizza or 'Heineken' for beer)",
+    )
+    quantity: int = Field(..., ge=1, description="Quantity of the item")
 
 
 class OrderInputDTO(ModelConfigBaseModel):
-    store_type: Annotated[
-        StoreType, Field(description="The type of the store")
-    ]
-    customer_id: Annotated[str, Field(description="The ID of the customer")]
-    items: Annotated[
-        List[OrderItemDTO], Field(description="The items in the order")
-    ]
-    total: Annotated[
-        Decimal, Field(description="The total amount of the order")
-    ]
+    """DTO for order input from API."""
+
+    service_type: ServiceType
+    items: list[OrderItemInputDTO]
+    notes: str | None = None
+
+
+class OrderCreateInternalDTO(ModelConfigBaseModel):
+    """Internal DTO for order creation with customer details."""
+
+    service_type: ServiceType
+    items: list[OrderItemInputDTO]
+    notes: str | None = None
+    customer_id: UUID
+    subtotal: Decimal
+    total: Decimal
+    customer_email: str
+
+
+class OrderUpdateDTO(ModelConfigBaseModel):
+    """DTO for order updates."""
+
+    service_type: ServiceType
+    items: list[OrderItemInputDTO]
+    notes: str | None = None
+    status: OrderStatus
+    customer_id: UUID
+    subtotal: Decimal
+    total: Decimal
+    customer_email: str
+
+
+class OrderItemDTO(ModelConfigBaseModel):
+    """DTO for order items."""
+
+    type: str = Field(..., description="Type of item (pizza or beer)")
+    product_id: UUID = Field(..., description="ID of the product")
+    quantity: int = Field(..., ge=1, description="Quantity of the item")
+    price: Decimal = Field(..., ge=0, description="Price of the item")
 
 
 class OrderDTO(ModelConfigBaseModel):
-    id: Annotated[str, Field(description="The ID of the order")]
-    store_type: Annotated[
-        StoreType, Field(description="The type of the store")
-    ]
-    customer_id: Annotated[str, Field(description="The ID of the customer")]
-    items: Annotated[
-        List[OrderItemDTO], Field(description="The items in the order")
-    ]
-    total: Annotated[
-        Decimal, Field(description="The total amount of the order")
-    ]
+    """DTO for order responses."""
+
+    id: UUID = Field(..., description="Order ID")
+    service_type: ServiceType = Field(..., description="Type of service")
+    customer_id: UUID = Field(..., description="ID of the customer")
+    status: OrderStatus = Field(..., description="Current status of the order")
+    items: List[OrderItemDTO] = Field(
+        ..., description="List of items in the order"
+    )
+    total: Decimal = Field(..., description="Total amount of the order")
+    customer_email: str = Field(..., description="Email of the customer")
+    notes: str | None = Field(None, description="Optional notes for the order")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")

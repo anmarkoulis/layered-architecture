@@ -1,26 +1,58 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from layered_architecture.dto.order import OrderDTO, OrderInputDTO
+from layered_architecture.dto.order import (
+    OrderCreateInternalDTO,
+    OrderDTO,
+    OrderUpdateDTO,
+)
 
 
-class OrderDAO(ABC):
+class OrderDAOInterface(ABC):
+    """Interface for order data access."""
+
     @abstractmethod
-    async def create(self, order_input: OrderInputDTO) -> OrderDTO:
-        """Create a new order.
+    async def get_by_id(self, order_id: str) -> Optional[OrderDTO]:
+        """Get an order by its ID.
 
-        Args:
-            order_input: The order input data including store_type
-
-        Returns:
-            The created order
+        :param order_id: The ID of the order to retrieve
+        :type order_id: str
+        :return: The order if found, None otherwise
+        :rtype: Optional[OrderDTO]
         """
         pass
 
     @abstractmethod
-    async def get_by_id(self, order_id: str) -> Optional[OrderDTO]:
+    async def get_all(self) -> List[OrderDTO]:
+        """Get all orders.
+
+        :return: List of all orders
+        :rtype: List[OrderDTO]
+        """
         pass
 
     @abstractmethod
-    async def get_all(self) -> List[OrderDTO]:
+    async def create(self, order_input: OrderCreateInternalDTO) -> OrderDTO:
+        """Create a new order.
+
+        :param order_input: The order input data with customer details
+        :type order_input: OrderCreateInternalDTO
+        :return: The created order
+        :rtype: OrderDTO
+        """
+        pass
+
+    @abstractmethod
+    async def update(
+        self, order_id: str, update_data: OrderUpdateDTO
+    ) -> OrderDTO:
+        """Update an existing order.
+
+        :param order_id: The ID of the order to update
+        :type order_id: str
+        :param update_data: The data to update the order with
+        :type update_data: OrderUpdateDTO
+        :return: The updated order
+        :rtype: OrderDTO
+        """
         pass

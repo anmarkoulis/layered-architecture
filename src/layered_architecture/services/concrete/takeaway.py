@@ -1,4 +1,3 @@
-from datetime import datetime, time
 from decimal import Decimal
 from logging import getLogger
 from uuid import UUID
@@ -24,14 +23,8 @@ from layered_architecture.services.interfaces.order import (
 logger = getLogger(__name__)
 
 
-class LateNightOrderService(OrderServiceInterface):
-    """Service for handling late night orders with 20% surcharge."""
-
-    LATE_NIGHT_SURCHARGE = Decimal(
-        "0.20"
-    )  # 20% surcharge for late night orders
-    LATE_NIGHT_START = time(22, 0)  # 10 PM
-    LATE_NIGHT_END = time(4, 0)  # 4 AM
+class TakeawayOrderService(OrderServiceInterface):
+    """Service for handling takeaway orders with standard pricing."""
 
     def __init__(
         self,
@@ -45,24 +38,12 @@ class LateNightOrderService(OrderServiceInterface):
         self.order_dao = order_dao
         self.uow = uow
 
-    def _is_late_night(self) -> bool:
-        """Check if the current time is within late night hours.
-
-        :return: True if current time is between 10 PM and 4 AM
-        :rtype: bool
-        """
-        current_time = datetime.now().time()
-        return (
-            self.LATE_NIGHT_START <= current_time
-            or current_time < self.LATE_NIGHT_END
-        )
-
     async def create_order(
         self,
         order_input: OrderInputDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
-        """Create a new late night order.
+        """Create a new takeaway order.
 
         :param order_input: The order input data
         :type order_input: OrderInputDTO
@@ -71,13 +52,8 @@ class LateNightOrderService(OrderServiceInterface):
         :return: The created order
         :rtype: OrderDTO
         """
-        if order_input.service_type != ServiceType.LATE_NIGHT:
-            raise ValueError("Invalid service type for late night service")
-
-        if not self._is_late_night():
-            raise ValueError(
-                "Late night orders are only available between 10 PM and 4 AM"
-            )
+        if order_input.service_type != ServiceType.TAKEAWAY:
+            raise ValueError("Invalid service type for takeaway service")
 
         async with self.uow:
             # Calculate subtotal
@@ -100,23 +76,20 @@ class LateNightOrderService(OrderServiceInterface):
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Apply late night surcharge
-            surcharge = subtotal * self.LATE_NIGHT_SURCHARGE
-            total = subtotal + surcharge
-
+            # Create order with standard pricing (no surcharges or discounts)
             order_create_dto = OrderCreateInternalDTO(
-                service_type=ServiceType.LATE_NIGHT,
+                service_type=ServiceType.TAKEAWAY,
                 items=order_input.items,
                 notes=order_input.notes,
                 customer_id=user.id,
-                subtotal=subtotal,
-                total=total,
+                subtotal=subtotal,  # Add subtotal
+                total=subtotal,  # No surcharges or discounts
                 customer_email=user.email,
             )
 
             created_order = await self.order_dao.create(order_create_dto)
             logger.info(
-                f"Created late night order {created_order.id} for user {user.id} with {self.LATE_NIGHT_SURCHARGE*100}% surcharge"
+                f"Created takeaway order {created_order.id} for user {user.id}"
             )
             return created_order
 
@@ -125,7 +98,7 @@ class LateNightOrderService(OrderServiceInterface):
         order_id: UUID,
         user: UserReadDTO,
     ) -> OrderDTO:
-        """Check the status of a late night order.
+        """Check the status of a takeaway order.
 
         :param order_id: The ID of the order to check
         :type order_id: UUID
@@ -149,7 +122,7 @@ class LateNightOrderService(OrderServiceInterface):
         order_input: OrderInputDTO,
         user: UserReadDTO,
     ) -> OrderDTO:
-        """Update a late night order.
+        """Update a takeaway order.
 
         :param order_id: The ID of the order to update
         :type order_id: UUID
@@ -160,11 +133,6 @@ class LateNightOrderService(OrderServiceInterface):
         :return: The updated order
         :rtype: OrderDTO
         """
-        if not self._is_late_night():
-            raise ValueError(
-                "Late night orders can only be updated between 10 PM and 4 AM"
-            )
-
         async with self.uow:
             order = await self.order_dao.get_by_id(str(order_id))
             if not order:
@@ -175,10 +143,8 @@ class LateNightOrderService(OrderServiceInterface):
                 raise ValueError(
                     f"Cannot update order in status {order.status}"
                 )
-            if order_input.service_type != ServiceType.LATE_NIGHT:
-                raise ValueError(
-                    "Cannot change service type to non-late-night"
-                )
+            if order_input.service_type != ServiceType.TAKEAWAY:
+                raise ValueError("Cannot change service type to non-takeaway")
 
             # Calculate new subtotal
             subtotal = Decimal("0")
@@ -200,27 +166,21 @@ class LateNightOrderService(OrderServiceInterface):
                         f"Invalid item type: {item.type}. Only 'pizza' and 'beer' are supported"
                     )
 
-            # Apply late night surcharge
-            surcharge = subtotal * self.LATE_NIGHT_SURCHARGE
-            total = subtotal + surcharge
-
             update_dto = OrderUpdateDTO(
-                service_type=ServiceType.LATE_NIGHT,
+                service_type=ServiceType.TAKEAWAY,
                 items=order_input.items,
                 notes=order_input.notes,
                 status=order.status,
                 customer_id=user.id,
-                subtotal=subtotal,
-                total=total,
+                subtotal=subtotal,  # Add subtotal
+                total=subtotal,  # No surcharges or discounts
                 customer_email=user.email,
             )
 
             updated_order = await self.order_dao.update(
                 str(order_id), update_dto
             )
-            logger.info(
-                f"Updated late night order {order_id} by user {user.id}"
-            )
+            logger.info(f"Updated takeaway order {order_id} by user {user.id}")
             return updated_order
 
     async def cancel_order(
@@ -229,7 +189,7 @@ class LateNightOrderService(OrderServiceInterface):
         user: UserReadDTO,
         reason: str | None = None,
     ) -> OrderDTO:
-        """Cancel a late night order.
+        """Cancel a takeaway order.
 
         :param order_id: The ID of the order to cancel
         :type order_id: UUID
@@ -254,12 +214,12 @@ class LateNightOrderService(OrderServiceInterface):
             notes = f"Cancelled: {reason}" if reason else order.notes
 
             update_dto = OrderUpdateDTO(
-                service_type=ServiceType.LATE_NIGHT,
+                service_type=ServiceType.TAKEAWAY,
                 items=order.items,
                 notes=notes,
                 status=OrderStatus.CANCELLED,
                 customer_id=user.id,
-                subtotal=order.subtotal,
+                subtotal=order.subtotal,  # Keep existing subtotal
                 total=order.total,
                 customer_email=user.email,
             )
@@ -268,6 +228,6 @@ class LateNightOrderService(OrderServiceInterface):
                 str(order_id), update_dto
             )
             logger.info(
-                f"Cancelled late night order {order_id} by user {user.id}"
+                f"Cancelled takeaway order {order_id} by user {user.id}"
             )
             return cancelled_order
