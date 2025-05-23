@@ -118,9 +118,9 @@ Senior Staff Engineer @Orfium
 
 # High-Level Architecture Overview
 
-<div style="display: flex; justify-content: center; align-items: center; height: 70vh;">
-<img src="diagrams/generated/high_level_architecture.png" style="max-width: 80%;" />
-</div>
+<!-- _class: lead -->
+
+![Layered Architecture](diagrams/generated/high_level_architecture.png)
 
 ---
 
@@ -144,11 +144,6 @@ async def create_foo(
 
 # Layer 2: Service Layer (Business)
 
-- Interface vs implementation
-- Transaction management
-- Business logic
-- Testable with fake DAOs
-
 ```python
 from abc import ABC, abstractmethod
 
@@ -161,16 +156,20 @@ class StandardFooService(FooService):
     def __init__(self, foo_dao: FooDAO, uow: UnitOfWork):
         self.foo_dao = foo_dao
         self.uow = uow
+
+    async def create_foo(self, foo: FooCreateDTO) -> FooResponseDTO:
+        async with self.uow:
+            return await self.foo_dao.create(foo)
 ```
+
+- Interface vs implementation
+- Transaction management
+- Business logic
+- Testable with fake DAOs
 
 ---
 
 # Layer 3: Persistence Layer (DAOs)
-
-- Interface for each DAO
-- Real implementation
-- No direct DB calls in services
-- Easy to swap implementations
 
 ```python
 from abc import ABC, abstractmethod
@@ -187,23 +186,18 @@ class SQLAlchemyFooDAO(FooDAO):
     async def create(self, foo: FooDTO) -> FooDTO:
         db_foo = Foo(**foo.model_dump())
         self.session.add(db_foo)
-        await self.session.commit()
+        await self.session.flush()
         return FooDTO.model_validate(db_foo)
 ```
+
+- Interface for each DAO
+- Real implementation
+- No direct DB calls in services
+- Easy to swap implementations
 
 ---
 
 # DTOs: The Glue Between Layers
-
-- Lightweight
-- Validation-free
-- Serialization-safe
-- Flow between layers
-
-Example Flow:
-```
-POST Request → Validated DTO → Service → DAO → DB → Response DTO
-```
 
 ```python
 from pydantic import BaseModel
@@ -221,25 +215,20 @@ class FooDTO(BaseModel):
     total: Decimal
 ```
 
+- Lightweight
+- Validation-free
+- Serialization-safe
+- Flow between layers
+
 ---
 
 # Dependency Inversion Principle
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     │     ┌─────────────┐     ┌─────────────┐
-│ Component 1 │────▶│ Component 2 │────▶│ Component 3 │     │     │ Component 1 │────▶│ Interface 1 │
-└─────────────┘     └─────────────┘     └─────────────┘     │     └─────────────┘     └──────┬──────┘
-                                                            │                                │
-                                                            │                                ▼
-                                                            │                         ┌─────────────┐     ┌─────────────┐
-                                                            │                         │ Component 2 │────▶│ Interface 2 │
-                                                            │                         └─────────────┘     └──────┬──────┘
-                                                            │                                                    │
-                                                            │                                                    ▼
-                                                            │                                             ┌─────────────┐
-                                                            │                                             │ Component 3 │
-                                                            │                                             └─────────────┘
-```
+**Before:**
+![Dependency Inversion - Before](diagrams/generated/dependency_inversion_principle_before.png)
+
+**After:**
+![Dependency Inversion - After](diagrams/generated/dependency_inversion_principle_after.png)
 
 - High-level modules should not depend on low-level modules
 - Both should depend on abstractions
@@ -273,28 +262,11 @@ class DependencyService:
 
 # Testing Strategy
 
-```
-        ┌─────────────────┐
-        │  System Tests   │
-        │  (API/Celery)   │
-        └────────┬────────┘
-                 │
-                 ▼
-    ┌─────────────────────────┐
-    │     Integration         │
-    │     Tests (DAOs)        │
-    └────────────┬────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────┐
-│           Unit Tests            │
-│           (Services)            │
-└─────────────────────────────────┘
-```
+![Testing Strategy](diagrams/generated/testing_strategy.png)
 
-- System: End-to-end with all entry points
-- Integration: Test DAOs with real database
-- Unit: Mock all dependencies, test business logic
+- System (few): End-to-end with all entry points
+- Integration (more): Test DAOs with real database
+- Unit (many): Mock all dependencies, test business logic
 
 ---
 
@@ -305,7 +277,7 @@ class TestFooAPI:
     @pytest.mark.anyio
     async def test_get_foo(
         self,
-        async_client: AsyncClient,  # async client of FastAPI
+        async_client: AsyncClient,  # async client of FastAPI using httpx and http://test
     ) -> None:
         # given
         payload = { bar: "bar" }
@@ -332,7 +304,7 @@ class TestFooDAO:
     @pytest.mark.anyio
     async def test_create(
         self,
-        test_session: AsyncSession,
+        test_session: AsyncSession,  # session pointing to the test database
     ) -> None:
         # Given
         dao = SQLAlchemyFooDAO(test_session)
@@ -402,6 +374,7 @@ When not to use:
 - Tiny projects
 - Simple CRUD apps
 - Prototypes
+- Microservices
 
 ---
 

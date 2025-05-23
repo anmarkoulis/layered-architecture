@@ -1,0 +1,10 @@
+flowchart LR
+    AL1["Component Level 1"] --> IF2["Interface Component Level 2"]
+    IF2 -.-> AL2["Component Level 2"]
+    AL2 --> IF3["Interface Component Level 3"]
+    IF3 -.-> AL3["Component Level 3"]
+    style IF2 stroke-dasharray: 5 5,stroke:#FFD43B,stroke-width:2px,fill:#1E1E1E,color:#FFD43B
+    style IF3 stroke-dasharray: 5 5,stroke:#FFD43B,stroke-width:2px,fill:#1E1E1E,color:#FFD43B
+    style AL1 fill:#306998,stroke:#E0E0E0,stroke-width:2px,color:#E0E0E0
+    style AL2 fill:#306998,stroke:#E0E0E0,stroke-width:2px,color:#E0E0E0
+    style AL3 fill:#306998,stroke:#E0E0E0,stroke-width:2px,color:#E0E0E0

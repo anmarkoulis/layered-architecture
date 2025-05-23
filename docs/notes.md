@@ -29,7 +29,7 @@ Our architecture evolution started with domain-driven design, then we experiment
 The Presentation Layer is where FastAPI lives. It's responsible for handling HTTP requests, validating input, and formatting responses. The same pattern works for CLI commands and Celery tasks.
 
 Here's a simple example of how it looks in code: [Show code example]
-```python
+  ```python
 @router.post("/foos")
 async def create_foo(
     foo: FooCreateDTO,
@@ -60,7 +60,7 @@ The beauty of this architecture is its simplicity. New team members can understa
 The Dependency Inversion Principle states that high-level modules should not depend on low-level modules. Both should depend on abstractions. In practice, this means our services don't know about specific database implementations or external services.
 
 We implement this through our DependencyService. Here's how it works: [Show code example]
-```python
+  ```python
 class DependencyService:
     @staticmethod
     def get_foo_service(
@@ -87,7 +87,7 @@ The key is that our services depend on interfaces, not concrete implementations.
 [Presenter Notes]
 "Our testing strategy follows the testing pyramid approach. Let me show you how we test each layer.
 
-System tests are at the top. These test the complete flow from API to database. We use FastAPI's AsyncClient and follow the given/when/then pattern. Here's an example: [Show code example]
+System tests (few) are at the top. These test the complete flow from API to database. We use FastAPI's AsyncClient and follow the given/when/then pattern. Here's an example: [Show code example]
 ```python
 class TestFooAPI:
     @pytest.mark.anyio
@@ -111,9 +111,9 @@ class TestFooAPI:
         }
 ```
 
-Integration tests verify our DAOs work correctly with the real database. We use a test database with rollbacks to ensure test isolation. These tests validate our infrastructure wiring and database interactions.
+Integration tests (more) verify our DAOs work correctly with the real database. We use a test database with rollbacks to ensure test isolation. These tests validate our infrastructure wiring and database interactions.
 
-Unit tests focus on business logic. We mock all dependencies and test services in isolation. This gives us fast feedback and good coverage. The key is that we're testing the business logic in isolation, not the infrastructure.
+Unit tests (many) focus on business logic. We mock all dependencies and test services in isolation. This gives us fast feedback and good coverage. The key is that we're testing the business logic in isolation, not the infrastructure.
 
 The key to our testing strategy is that we never mock in system tests. This ensures we're testing the real behavior of our application."
 

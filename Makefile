@@ -15,10 +15,13 @@ create-presentation: install-marp generate-diagrams ## Generate presentation PDF
 .PHONY: $(shell grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | cut -d ':' -f 1)
 
 run: sync up ## Run the FastAPI application
-	uv run uvicorn src.layered_architecture.main:app --reload --host 0.0.0.0 --port 8000
+	PYTHONDONTWRITEBYTECODE=1 uv run uvicorn src.layered_architecture.main:app --reload --host 0.0.0.0 --port 8000
 
 down: ## Stop all containers
 	docker compose down
+
+down-volumes: ## Stop all containers and remove volumes
+	docker compose down -v
 
 up: ## Start all containers
 	docker compose up -d
@@ -46,3 +49,9 @@ generate-diagrams: install-mermaid-cli ## Generate diagrams
 		mmdc -i $$file -o docs/diagrams/generated/$$filename.png; \
 	done
 	@echo "Diagrams generated successfully!"
+
+clean-pyc: ## Remove Python cache files
+	find . -type d -name "__pycache__" -exec rm -r {} +
+	find . -type f -name "*.pyc" -delete
+	find . -type f -name "*.pyo" -delete
+	find . -type f -name "*.pyd" -delete

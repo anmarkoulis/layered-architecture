@@ -1,0 +1,12 @@
+flowchart TD
+    A["System Tests<br/>(API/Celery)"]
+    B["Integration Tests<br/>(DAOs)"]
+    C["Unit Tests<br/>(Services)"]
+
+
+    A --> B
+    B --> C
+
+    style A fill:#FFD43B,stroke:#306998,stroke-width:2px,color:#1E1E1E
+    style B fill:#306998,stroke:#E0E0E0,stroke-width:2px,color:#E0E0E0
+    style C fill:#1E1E1E,stroke:#E0E0E0,stroke-width:2px,color:#FFD43B
