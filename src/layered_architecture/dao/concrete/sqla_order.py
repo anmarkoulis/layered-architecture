@@ -214,7 +214,7 @@ class SQLOrderDAO(OrderDAOInterface):
             pizza_result = await self.session.execute(
                 select(OrderPizza).where(OrderPizza.order_id == order.id)
             )
-            for pizza_row in pizza_result:
+            for pizza_row in pizza_result.scalars():
                 pizza = await self.session.get(Pizza, pizza_row.pizza_id)
                 if pizza is None:
                     continue
@@ -231,7 +231,7 @@ class SQLOrderDAO(OrderDAOInterface):
             beer_result = await self.session.execute(
                 select(OrderBeer).where(OrderBeer.order_id == order.id)
             )
-            for beer_row in beer_result:
+            for beer_row in beer_result.scalars():
                 beer = await self.session.get(Beer, beer_row.beer_id)
                 if beer is None:
                     continue
@@ -252,7 +252,7 @@ class SQLOrderDAO(OrderDAOInterface):
                     status=order.status,
                     items=items,
                     total=order.total,
-                    customer_email=None,  # This will be None since it's not in the model
+                    customer_email="",  # Use empty string instead of None
                     notes=order.notes,
                     created_at=order.created_at,
                     updated_at=order.updated_at,
