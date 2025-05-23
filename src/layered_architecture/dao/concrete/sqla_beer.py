@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from sqlalchemy import Boolean, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from layered_architecture.dao.interfaces import BeerDAOInterface
@@ -31,8 +31,6 @@ class SQLBeerDAO(BeerDAOInterface):
         return BeerDTO.model_validate(beer)
 
     async def get_all(self) -> List[BeerDTO]:
-        result = await self.session.execute(
-            select(Beer).where(Beer.is_available == Boolean(True))
-        )
+        result = await self.session.execute(select(Beer))
         beers = result.scalars().all()
         return [BeerDTO.model_validate(beer) for beer in beers]
