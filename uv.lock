@@ -418,6 +418,18 @@ wheels = [
 ]
 
 [[package]]
+name = "freezegun"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2c/ef/722b8d71ddf4d48f25f6d78aa2533d505bf3eec000a7cacb8ccc8de61f2f/freezegun-1.5.1.tar.gz", hash = "sha256:b29dedfcda6d5e8e083ce71b2b542753ad48cfec44037b3fc79702e2980a89e9", size = 33697 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/0b/0d7fee5919bccc1fdc1c2a7528b98f65c6f69b223a3fd8f809918c142c36/freezegun-1.5.1-py3-none-any.whl", hash = "sha256:bf111d7138a8abe55ab48a71755673dbaa4ab87f4cff5634a4442dfec34c15f1", size = 17569 },
+]
+
+[[package]]
 name = "greenlet"
 version = "3.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -585,6 +597,7 @@ dependencies = [
 dev = [
     { name = "commitizen" },
     { name = "faker" },
+    { name = "freezegun" },
     { name = "greenlet" },
     { name = "httpx" },
     { name = "mypy" },
@@ -622,6 +635,7 @@ requires-dist = [
 dev = [
     { name = "commitizen", specifier = "==4.7.0" },
     { name = "faker", specifier = "==37.1.0" },
+    { name = "freezegun", specifier = "==1.5.1" },
     { name = "greenlet", specifier = "==3.2.2" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "mypy", specifier = "==1.15.0" },

@@ -38,6 +38,7 @@ dev = [
     "types-mock==5.2.0.20250306",
     "types-pyyaml==6.0.12.20250402",
     "types-requests==2.32.0.20250328",
+    "freezegun==1.5.1"
 ]
 
 [build-system]

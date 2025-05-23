@@ -26,6 +26,7 @@ class OrderInputDTO(ModelConfigBaseModel):
     service_type: ServiceType
     items: list[OrderItemInputDTO]
     notes: str | None = None
+    delivery_address: str | None = None
 
 
 class OrderCreateInternalDTO(ModelConfigBaseModel):
@@ -38,6 +39,7 @@ class OrderCreateInternalDTO(ModelConfigBaseModel):
     subtotal: Decimal
     total: Decimal
     customer_email: str
+    delivery_address: str | None = None
 
 
 class OrderUpdateDTO(ModelConfigBaseModel):
@@ -47,6 +49,7 @@ class OrderUpdateDTO(ModelConfigBaseModel):
     items: list[OrderItemInputDTO]
     notes: str | None = None
     status: OrderStatus
+    delivery_address: str | None = None
 
 
 class OrderUpdateInternalDTO(ModelConfigBaseModel):
@@ -60,6 +63,7 @@ class OrderUpdateInternalDTO(ModelConfigBaseModel):
     subtotal: Decimal
     total: Decimal
     customer_email: str
+    delivery_address: str | None = None
 
 
 class OrderItemDTO(ModelConfigBaseModel):
@@ -86,3 +90,6 @@ class OrderDTO(ModelConfigBaseModel):
     notes: str | None = Field(None, description="Optional notes for the order")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    delivery_address: str | None = Field(
+        None, description="Delivery address for delivery orders"
+    )

@@ -7,6 +7,7 @@ from layered_architecture.dao.concrete.sqla_order import SQLOrderDAO
 from layered_architecture.dao.concrete.sqla_pizza import SQLPizzaDAO
 from layered_architecture.db.models.order import ServiceType
 from layered_architecture.db.uow import SQLAUnitOfWork
+from layered_architecture.exceptions import NotFoundError
 from layered_architecture.services import (
     DeliveryOrderService,
     DineInOrderService,
@@ -47,11 +48,14 @@ class OrderServiceFactory:
         :type order_id: str
         :return: The appropriate order service
         :rtype: OrderServiceInterface
-        :raises ValueError: If order not found
+        :raises NotFoundError: If order not found
         """
         order = await self.order_dao.get_by_id(order_id)
         if not order:
-            raise ValueError(f"Order not found: {order_id}")
+            raise NotFoundError(
+                resource_type="order",
+                resource_id=order_id,
+            )
 
         return self.get_service_by_service_type(order.service_type)
 

@@ -24,3 +24,4 @@ class Order(Base, UUIDMixin, CreatedAtMixin, UpdatedAtMixin):
     subtotal: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     notes: Mapped[str] = mapped_column(String, nullable=True)
+    delivery_address: Mapped[str] = mapped_column(String, nullable=True)

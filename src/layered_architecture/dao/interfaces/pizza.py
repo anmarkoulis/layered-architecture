@@ -4,7 +4,7 @@ from typing import List, Optional
 from layered_architecture.dto.pizza import PizzaDTO
 
 
-class PizzaDAOInterface(ABC):
+class PizzaDAOInterface(ABC):  # pragma: no cover
     """Interface for pizza data access."""
 
     @abstractmethod

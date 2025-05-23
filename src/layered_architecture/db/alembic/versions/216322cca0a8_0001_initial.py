@@ -71,6 +71,7 @@ def upgrade() -> None:
         ),
         sa.Column("total", sa.Numeric(precision=10, scale=2), nullable=False),
         sa.Column("notes", sa.String(), nullable=True),
+        sa.Column("delivery_address", sa.String(), nullable=True),
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
