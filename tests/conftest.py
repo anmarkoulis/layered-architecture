@@ -1,5 +1,4 @@
-import asyncio
-from typing import Any, AsyncGenerator, Generator
+from typing import Any, AsyncGenerator
 
 import asyncpg
 import httpx
@@ -219,18 +218,6 @@ async def override_get_auth_service() -> None:
     :rtype: None
     """
     return None
-
-
-@pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create an event loop for the test session.
-
-    :yield: The event loop
-    :rtype: Generator
-    """
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(scope="session")
