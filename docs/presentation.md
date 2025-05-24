@@ -114,6 +114,21 @@ Senior Staff Engineer @Orfium
 
 ---
 
+# Dependency Inversion Principle
+
+**Before:**
+![Dependency Inversion - Before](diagrams/generated/dependency_inversion_principle_before.png)
+
+**After:**
+![Dependency Inversion - After](diagrams/generated/dependency_inversion_principle_after.png)
+
+- High-level modules should not depend on low-level modules
+- Both should depend on abstractions
+- Abstractions should not depend on details
+- Details should depend on abstractions
+
+---
+
 # High-Level Architecture Overview
 
 <!-- _class: lead -->
@@ -211,20 +226,6 @@ class FooDTO(BaseModel):
 - Validation-free ( usually... )
 - Flow between layers
 
----
-
-# Dependency Inversion Principle
-
-**Before:**
-![Dependency Inversion - Before](diagrams/generated/dependency_inversion_principle_before.png)
-
-**After:**
-![Dependency Inversion - After](diagrams/generated/dependency_inversion_principle_after.png)
-
-- High-level modules should not depend on low-level modules
-- Both should depend on abstractions
-- Abstractions should not depend on details
-- Details should depend on abstractions
 
 ---
 
