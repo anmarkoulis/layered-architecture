@@ -360,7 +360,17 @@ But the benefits outweigh the costs:
 - Flexible code
 - Consistent patterns
 
-.
+---
+
+# When to Use This Architecture
+
+- Single domain application
+- Medium sized project
+- Complex business logic
+- Multiple entry points (API, CLI, Celery)
+- Need for long-term maintainability
+- Need for comprehensive testing
+
 ---
 
 # Q&A
