@@ -280,8 +280,11 @@ test.yaml
 # Generated diagrams
 docs/diagrams/generated/
 
-# Presentation
+# Presentation generated files
 docs/presentation.pdf
+
+# Presentation notes
+docs/notes.md
 
 # macOS
 .DS_Store
