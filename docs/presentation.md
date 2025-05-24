@@ -58,7 +58,7 @@ style: |
 # Layered Architecture & Dependency Injection
 ## A Recipe for Clean and Testable FastAPI Code
 
-![Meetup Logo](https://secure.meetupstatic.com/photos/event/6/b/9/2/clean_443067538.webp)
+![Meetup Logo width:150px](https://secure.meetupstatic.com/photos/event/6/b/9/2/clean_443067538.webp)
 
 Antonis Markoulis
 Senior Staff Engineer @Orfium
@@ -87,7 +87,7 @@ Senior Staff Engineer @Orfium
 
 ## The Legacy & Issues
 - Legacy Django projects with suboptimal structure
-- Fat models at best, spaghetti code at worst
+- Fat models at best, implicit architecture with spaghetti code at worst
 - Performance issues from sync code and ORM queries
 - Hard to implement new features
 - Limited async capabilities
@@ -104,10 +104,8 @@ Senior Staff Engineer @Orfium
 ## Why FastAPI Won
 - **Performance**: Async-first, built for speed
 - **Modern**: Latest Python features
-- **Agility**: Freedom to structure our way
-- **Developer Experience**: Better tooling and type hints
-- No enforced architecture
-- Perfect for organizational standards
+- **Agility**: Freedom to experiment with architectures
+
 
 ## Our Architecture Evolution
 - Started with domain-driven design
@@ -135,8 +133,8 @@ async def create_foo(
     return await foo_service.create_foo(foo)
 ```
 
-- Minimal logic
-- DTO validation
+- Minimal code
+- Map of API inputs to service inputs
 - Service injection
 - Same pattern for CLI/Celery
 
@@ -145,8 +143,6 @@ async def create_foo(
 # Layer 2: Service Layer (Business)
 
 ```python
-from abc import ABC, abstractmethod
-
 class FooService(ABC):
     @abstractmethod
     async def create_foo(self, foo: FooCreateDTO) -> FooResponseDTO:
@@ -165,15 +161,12 @@ class StandardFooService(FooService):
 - Interface vs implementation
 - Transaction management
 - Business logic
-- Testable with fake DAOs
 
 ---
 
 # Layer 3: Persistence Layer (DAOs)
 
 ```python
-from abc import ABC, abstractmethod
-
 class FooDAO(ABC):
     @abstractmethod
     async def create(self, foo: FooDTO) -> FooDTO:
@@ -191,7 +184,6 @@ class SQLAlchemyFooDAO(FooDAO):
 ```
 
 - Interface for each DAO
-- Real implementation
 - No direct DB calls in services
 - Easy to swap implementations
 
@@ -216,8 +208,7 @@ class FooDTO(BaseModel):
 ```
 
 - Lightweight
-- Validation-free
-- Serialization-safe
+- Validation-free ( usually... )
 - Flow between layers
 
 ---
@@ -255,7 +246,6 @@ class DependencyService:
 
 - Simple service assembly
 - Clear dependencies
-- Easy to test
 - Extensible (singletons, caching, feature flags)
 
 ---
@@ -347,6 +337,16 @@ class TestFooService:
 
 ---
 
+# Live Demo
+
+<!-- _class: lead -->
+
+![QR Code to Repository width:300px](https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://github.com/anmarkoulis/layered-architecture)
+
+[github.com/anmarkoulis/layered-architecture](https://github.com/anmarkoulis/layered-architecture)
+
+---
+
 # Trade-offs and Challenges
 
 - Boilerplate code
@@ -360,29 +360,13 @@ But the benefits outweigh the costs:
 - Flexible code
 - Consistent patterns
 
+.
 ---
 
-# What We Learned + When to Use This
+# Q&A
 
-Works well for:
-- Single-domain apps <50k LOC
-- Teams who want long-term maintainability
-- Complex business logic
-- Multiple entrypoints
+**Thank you for your attention!**
 
-When not to use:
-- Tiny projects
-- Simple CRUD apps
-- Prototypes
-- Microservices
-
----
-
-# Q&A + Resources
-
-- GitHub repo: [link]
-- Documentation: [link]
-- Example code: [link]
-- Contact: [email]
-
-Thank you for your attention!
+- GitHub: [@anmarkoulis](https://github.com/anmarkoulis/)
+- LinkedIn: [Antonis Markoulis](https://www.linkedin.com/in/anmarkoulis/)
+- Dev.to: [Antonis Markoulis](https://dev.to/markoulis/)

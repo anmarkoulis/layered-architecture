@@ -1,5 +1,5 @@
 flowchart TD
-    A["Presentation Layer (FastAPI/CLI)"] --> B["Business Layer (Services)"]
+    A["Presentation Layer (FastAPI/Celery/Typer)"] --> B["Business Layer (Services)"]
     B --> C["Persistence Layer (DAOs)"]
 
     style A fill:#306998,stroke:#E0E0E0,stroke-width:2px,color:#E0E0E0
