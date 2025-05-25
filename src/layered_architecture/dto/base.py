@@ -9,7 +9,6 @@ class ModelConfigBaseModel(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,
-        json_schema_extra={"example": {}},
     )
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
