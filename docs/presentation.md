@@ -158,13 +158,13 @@ async def create_foo(
 # Layer 2: Service Layer (Business)
 
 ```python
-class FooService(ABC):
+class FooServiceInterface(ABC):
     @abstractmethod
     async def create_foo(self, foo: FooCreateDTO) -> FooResponseDTO:
         ...
 
-class StandardFooService(FooService):
-    def __init__(self, foo_dao: FooDAO, uow: UnitOfWork):
+class StandardFooService(FooServiceInterface):
+    def __init__(self, foo_dao: FooDAOInterface, uow: UnitOfWorkInterface):
         self.foo_dao = foo_dao
         self.uow = uow
 
@@ -182,12 +182,12 @@ class StandardFooService(FooService):
 # Layer 3: Persistence Layer (DAOs)
 
 ```python
-class FooDAO(ABC):
+class FooDAOInterface(ABC):
     @abstractmethod
     async def create(self, foo: FooDTO) -> FooDTO:
         ...
 
-class SQLAlchemyFooDAO(FooDAO):
+class SQLAlchemyFooDAO(FooDAOInterface):
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -291,7 +291,7 @@ class TestFooAPI:
 # Integration Tests
 
 ```python
-class TestFooDAO:
+class TestSQLAFooDAO:
     @pytest.mark.anyio
     async def test_create(
         self,
