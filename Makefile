@@ -47,7 +47,7 @@ sync: install-uv ## Sync the project
 dbshell: ## Open PSQL shell
 	docker compose exec postgres psql -U postgres -d layered_arch
 
-test: ## Run tests
+test: up  ## Run tests
 	PYTHONPATH=src uv run pytest tests --cov --cov-report=term --cov-report=html --cov-report=xml --cov-report=json ${args}
 
 generate-diagrams: install-mermaid-cli ## Generate diagrams

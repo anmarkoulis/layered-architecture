@@ -9,6 +9,7 @@ class ModelConfigBaseModel(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,
+        frozen=True,
     )
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
