@@ -199,7 +199,7 @@ class SQLAlchemyFooDAO(FooDAOInterface):
 ```
 
 - Interface for each DAO
-- No direct DB calls in services
+- No commits here
 - Easy to swap implementations
 
 ---
@@ -306,6 +306,7 @@ class TestSQLAFooDAO:
 
         # Then
         assert result.bar == "bar"
+        assert result.created_at is not null
 ```
 
 ---
