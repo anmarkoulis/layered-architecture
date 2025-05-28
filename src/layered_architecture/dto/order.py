@@ -86,7 +86,9 @@ class OrderDTO(ModelConfigBaseModel):
         ..., description="List of items in the order"
     )
     total: Decimal = Field(..., description="Total amount of the order")
-    customer_email: str = Field(..., description="Email of the customer")
+    customer_email: str | None = Field(
+        None, description="Email of the customer"
+    )
     notes: str | None = Field(None, description="Optional notes for the order")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")

@@ -9,6 +9,15 @@ class ServiceType(str, Enum):
     DELIVERY = "delivery"
     LATE_NIGHT = "late_night"
 
+    @staticmethod
+    def get_default() -> "ServiceType":
+        """Get the default service type.
+
+        :return: The default service type (DINE_IN)
+        :rtype: ServiceType
+        """
+        return ServiceType.DINE_IN
+
 
 class OrderStatus(str, Enum):
     """Order status enum."""

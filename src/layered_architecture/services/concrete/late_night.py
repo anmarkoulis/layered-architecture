@@ -3,6 +3,7 @@ from decimal import Decimal
 from logging import getLogger
 from uuid import UUID
 
+from .base_order import BaseOrderService
 from layered_architecture.dao.interfaces import (
     BeerDAOInterface,
     OrderDAOInterface,
@@ -20,14 +21,11 @@ from layered_architecture.dto.order import (
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
 from layered_architecture.exceptions import NotFoundError
-from layered_architecture.services.interfaces.order import (
-    OrderServiceInterface,
-)
 
 logger = getLogger(__name__)
 
 
-class LateNightOrderService(OrderServiceInterface):
+class LateNightOrderService(BaseOrderService):
     """Service for handling late night orders with 20% surcharge."""
 
     LATE_NIGHT_SURCHARGE = Decimal(

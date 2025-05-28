@@ -17,6 +17,7 @@ from layered_architecture.dto import (
     OrderItemDTO,
     OrderUpdateInternalDTO,
 )
+from layered_architecture.enums import OrderStatus
 
 
 class SQLOrderDAO(OrderDAOInterface):
@@ -196,69 +197,84 @@ class SQLOrderDAO(OrderDAOInterface):
             delivery_address=order.delivery_address,
         )
 
-    async def get_all(self) -> List[OrderDTO]:
+    async def get_all(
+        self, status: Optional[OrderStatus] = None
+    ) -> List[OrderDTO]:
         """Get all orders.
 
+        :param status: Optional status to filter orders by
+        :type status: Optional[OrderStatus]
         :return: List of all orders
         :rtype: List[OrderDTO]
         """
-        result = await self.session.execute(select(Order))
+        # Build the base query
+        query = select(Order)
+
+        # Add status filter if provided
+        if status is not None:
+            query = query.where(Order.status == status)
+
+        # Execute query
+        result = await self.session.execute(query)
         orders = result.scalars().all()
 
+        # Convert to DTOs
         order_dtos = []
         for order in orders:
-            # Get items for each order
-            items: List[OrderItemDTO] = []
-
             # Get pizzas
-            pizza_result = await self.session.execute(
-                select(OrderPizza).where(OrderPizza.order_id == order.id)
+            pizza_query = (
+                select(OrderPizza, Pizza)
+                .join(Pizza, OrderPizza.pizza_id == Pizza.id)
+                .where(OrderPizza.order_id == order.id)
             )
-            for pizza_row in pizza_result.scalars():
-                pizza = await self.session.get(Pizza, pizza_row.pizza_id)
-                if pizza is None:
-                    continue
-                items.append(
+            pizza_result = await self.session.execute(pizza_query)
+            pizza_items = []
+            for order_pizza, pizza in pizza_result:
+                pizza_items.append(
                     OrderItemDTO(
-                        product_id=str(pizza.id),
-                        quantity=pizza_row.quantity,
+                        product_id=pizza.id,
+                        quantity=order_pizza.quantity,
                         price=pizza.price,
                         type="pizza",
                     )
                 )
 
             # Get beers
-            beer_result = await self.session.execute(
-                select(OrderBeer).where(OrderBeer.order_id == order.id)
+            beer_query = (
+                select(OrderBeer, Beer)
+                .join(Beer, OrderBeer.beer_id == Beer.id)
+                .where(OrderBeer.order_id == order.id)
             )
-            for beer_row in beer_result.scalars():
-                beer = await self.session.get(Beer, beer_row.beer_id)
-                if beer is None:
-                    continue
-                items.append(
+            beer_result = await self.session.execute(beer_query)
+            beer_items = []
+            for order_beer, beer in beer_result:
+                beer_items.append(
                     OrderItemDTO(
-                        product_id=str(beer.id),
-                        quantity=beer_row.quantity,
+                        product_id=beer.id,
+                        quantity=order_beer.quantity,
                         price=beer.price,
                         type="beer",
                     )
                 )
 
-            order_dtos.append(
-                OrderDTO(
-                    id=str(order.id),
-                    service_type=order.service_type,
-                    customer_id=order.customer_id,
-                    status=order.status,
-                    items=items,
-                    total=order.total,
-                    customer_email="",  # Use empty string instead of None
-                    notes=order.notes,
-                    created_at=order.created_at,
-                    updated_at=order.updated_at,
-                    delivery_address=order.delivery_address,
-                )
+            # Combine all items
+            items = pizza_items + beer_items
+
+            # Create DTO
+            order_dto = OrderDTO(
+                id=order.id,
+                service_type=order.service_type,
+                customer_id=order.customer_id,
+                status=order.status,
+                items=items,
+                total=order.total,
+                customer_email="",  # Use empty string instead of None
+                notes=order.notes,
+                delivery_address=order.delivery_address,
+                created_at=order.created_at,
+                updated_at=order.updated_at,
             )
+            order_dtos.append(order_dto)
 
         return order_dtos
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from layered_architecture.dto.order import OrderDTO, OrderInputDTO
@@ -80,5 +80,22 @@ class OrderServiceInterface(ABC):  # pragma: no cover
         :type reason: Optional[str]
         :return: The cancelled order
         :rtype: OrderDTO
+        """
+        pass
+
+    @abstractmethod
+    async def cancel_pending_orders(
+        self,
+        user: UserReadDTO,
+        reason: Optional[str] = None,
+    ) -> List[OrderDTO]:
+        """Cancel all pending orders.
+
+        :param user: The user cancelling the orders
+        :type user: UserReadDTO
+        :param reason: Optional reason for cancellation
+        :type reason: Optional[str]
+        :return: List of cancelled orders
+        :rtype: List[OrderDTO]
         """
         pass
