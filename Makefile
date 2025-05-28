@@ -64,4 +64,7 @@ clean-pyc: ## Remove Python cache files
 	find . -type f -name "*.pyo" -delete
 	find . -type f -name "*.pyd" -delete
 
+command: install-uv up ## Run cli commands (usage: make command COMMAND_WITH_ARGS="layered_architecture.commands.cancel_pending_orders --reason 'System maintenance'")
+	PYTHONPATH=src uv run python -m ${COMMAND_WITH_ARGS}
+
 .PHONY: $(shell grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | cut -d ':' -f 1)

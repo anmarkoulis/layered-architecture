@@ -2,6 +2,7 @@ from decimal import Decimal
 from logging import getLogger
 from uuid import UUID
 
+from .base_order import BaseOrderService
 from layered_architecture.dao.interfaces import (
     BeerDAOInterface,
     OrderDAOInterface,
@@ -20,14 +21,11 @@ from layered_architecture.dto.order import (
 from layered_architecture.dto.user import UserReadDTO
 from layered_architecture.enums import OrderStatus, ServiceType
 from layered_architecture.exceptions import NotFoundError
-from layered_architecture.services.interfaces.order import (
-    OrderServiceInterface,
-)
 
 logger = getLogger(__name__)
 
 
-class DineInOrderService(OrderServiceInterface):
+class DineInOrderService(BaseOrderService):
     """Service for handling dine-in orders with standard pricing."""
 
     def __init__(
@@ -37,10 +35,7 @@ class DineInOrderService(OrderServiceInterface):
         order_dao: OrderDAOInterface,
         uow: BaseUnitOfWork,
     ):
-        self.pizza_dao = pizza_dao
-        self.beer_dao = beer_dao
-        self.order_dao = order_dao
-        self.uow = uow
+        super().__init__(pizza_dao, beer_dao, order_dao, uow)
 
     async def create_order(
         self,

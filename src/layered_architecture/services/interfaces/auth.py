@@ -15,3 +15,13 @@ class AuthServiceInterface(ABC):  # pragma: no cover
         :rtype: UserReadDTO
         """
         pass
+
+    @staticmethod
+    @abstractmethod
+    async def get_system_user() -> UserReadDTO:
+        """Get the system user for automated operations.
+
+        :return: The system user's data
+        :rtype: UserReadDTO
+        """
+        pass

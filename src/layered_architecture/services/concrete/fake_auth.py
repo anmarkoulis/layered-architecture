@@ -22,3 +22,19 @@ class FakeAuthService(AuthServiceInterface):
             email="test@example.com",
             address="123 Test Street, Test City",
         )
+
+    @staticmethod
+    async def get_system_user() -> UserReadDTO:
+        """Get the system user (always returns the test user).
+
+        :return: The test user's data
+        :rtype: UserReadDTO
+        """
+        return UserReadDTO(
+            id=UUID("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+            username="system",
+            first_name="System",
+            last_name="User",
+            email="system@example.com",
+            address="",
+        )

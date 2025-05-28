@@ -6,6 +6,7 @@ from layered_architecture.dto.order import (
     OrderDTO,
     OrderUpdateInternalDTO,
 )
+from layered_architecture.enums import OrderStatus
 
 
 class OrderDAOInterface(ABC):  # pragma: no cover
@@ -23,9 +24,13 @@ class OrderDAOInterface(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    async def get_all(self) -> List[OrderDTO]:
+    async def get_all(
+        self, status: Optional[OrderStatus] = None
+    ) -> List[OrderDTO]:
         """Get all orders.
 
+        :param status: Optional status to filter orders by
+        :type status: Optional[OrderStatus]
         :return: List of all orders
         :rtype: List[OrderDTO]
         """
